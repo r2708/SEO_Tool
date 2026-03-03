@@ -61,36 +61,36 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Verify all tables, indexes, and constraints are created
     - _Requirements: 17.2_
 
-- [ ] 3. Core utilities and error handling
-  - [ ] 3.1 Implement error classes and global error handler
+- [x] 3. Core utilities and error handling
+  - [x] 3.1 Implement error classes and global error handler
     - Create AppError base class with statusCode and isOperational flag
     - Create ValidationError (400), AuthenticationError (401), AuthorizationError (403), NotFoundError (404), RateLimitError (429), ExternalServiceError (502)
     - Implement global error handler middleware that logs errors and returns consistent JSON responses
     - Ensure 500 errors don't expose internal details
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8_
 
-  - [ ] 3.2 Write property tests for error handling
+  - [x] 3.2 Write property tests for error handling
     - Property 46: Error Logging Completeness
     - Property 47: HTTP Status Code Mapping
     - Property 48: Internal Error Security
     - Property 49: External API Error Handling
     - Validates: Requirements 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8
 
-  - [ ] 3.3 Implement structured logging with Winston
+  - [x] 3.3 Implement structured logging with Winston
     - Configure Winston with JSON format, timestamps, and error stack traces
     - Create separate log files for errors and combined logs
     - Add console transport for development
     - Export logger instance for use across services
     - _Requirements: 14.7_
 
-  - [ ] 3.4 Implement Redis cache service
+  - [x] 3.4 Implement Redis cache service
     - Create CacheService interface with get, set, del, delPattern methods
     - Implement RedisCache class with connection pooling
     - Define cache key patterns and TTL constants
     - Implement graceful degradation when cache fails
     - _Requirements: 15.6, 15.7_
 
-  - [ ] 3.5 Write property tests for cache operations
+  - [x] 3.5 Write property tests for cache operations
     - Property 39: Cache TTL Configuration
     - Property 50: Cache Invalidation on Update
     - Property 51: Cache Failure Graceful Degradation

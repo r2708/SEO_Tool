@@ -1,0 +1,128 @@
+// Prisma schema for SEO SaaS Platform
+// This schema defines all database models, relationships, and constraints
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User role enumeration
+enum UserRole {
+  Free
+  Pro
+  Admin
+}
+
+// User model - stores user accounts with authentication data
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // bcrypt hashed password
+  role      UserRole @default(Free)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  projects  Project[]
+  
+  @@index([email])
+}
+
+// Project model - represents an SEO project for a specific domain
+model Project {
+  id        String   @id @default(uuid())
+  domain    String
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keywords    Keyword[]
+  rankings    Ranking[]
+  competitors Competitor[]
+  seoScores   SEOScore[]
+  
+  @@index([userId])
+  @@index([domain])
+}
+
+// Keyword model - stores keyword research data for projects
+model Keyword {
+  id           String   @id @default(uuid())
+  projectId    String
+  keyword      String
+  searchVolume Int
+  difficulty   Decimal  @db.Decimal(5, 2) // 0.00 to 100.00
+  cpc          Decimal  @db.Decimal(10, 2) // Cost per click in USD
+  lastUpdated  DateTime @default(now())
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, keyword])
+  @@index([projectId])
+  @@index([keyword])
+}
+
+// Ranking model - tracks keyword position in search results over time
+model Ranking {
+  id        String   @id @default(uuid())
+  projectId String
+  keyword   String
+  position  Int      // 1-100
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, keyword, date])
+  @@index([projectId])
+  @@index([keyword])
+  @@index([date])
+}
+
+// Competitor model - stores competitor domains being analyzed
+model Competitor {
+  id           String   @id @default(uuid())
+  projectId    String
+  domain       String
+  lastAnalyzed DateTime @default(now())
+  createdAt    DateTime @default(now())
+  
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  competitorKeywords CompetitorKeyword[]
+  
+  @@unique([projectId, domain])
+  @@index([projectId])
+}
+
+// CompetitorKeyword model - stores keywords associated with competitors
+model CompetitorKeyword {
+  id           String @id @default(uuid())
+  competitorId String
+  keyword      String
+  
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@unique([competitorId, keyword])
+  @@index([competitorId])
+  @@index([keyword])
+}
+
+// SEOScore model - stores on-page SEO audit results
+model SEOScore {
+  id        String   @id @default(uuid())
+  projectId String
+  url       String
+  score     Int      // 0-100
+  analysis  Json     // Stores full SEOAnalysis object
+  createdAt DateTime @default(now())
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+  @@index([createdAt])
+}
