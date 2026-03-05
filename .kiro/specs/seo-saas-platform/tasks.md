@@ -348,20 +348,20 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - _Requirements: 7.1, 7.8, 7.9_
 
 
-- [ ] 11. Competitor analysis service implementation
-  - [ ] 11.1 Implement competitor keyword extraction
+- [x] 11. Competitor analysis service implementation
+  - [x] 11.1 Implement competitor keyword extraction
     - Scrape competitor domain using Puppeteer
     - Extract keywords from meta tags, headings, and content
     - Store competitor with domain and lastAnalyzed timestamp
     - Store competitor-keyword associations
     - _Requirements: 8.1, 8.2, 8.3, 8.6_
 
-  - [ ] 11.2 Write property tests for competitor operations
+  - [x] 11.2 Write property tests for competitor operations
     - Property 32: Competitor Keyword Extraction
     - Property 34: Competitor Data Round-Trip
     - Validates: Requirements 8.2, 8.3, 8.6, 8.7
 
-  - [ ] 11.3 Implement keyword overlap calculation
+  - [x] 11.3 Implement keyword overlap calculation
     - Fetch user's project keywords
     - Fetch competitor keywords
     - Calculate shared keywords (intersection)
@@ -369,41 +369,41 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Calculate user-only keywords (difference)
     - _Requirements: 8.4, 8.5_
 
-  - [ ] 11.4 Write property test for keyword overlap
+  - [x] 11.4 Write property test for keyword overlap
     - Property 33: Keyword Overlap Calculation
     - Validates: Requirements 8.4, 8.5
 
-  - [ ] 11.5 Implement competitor caching and API routes
+  - [x] 11.5 Implement competitor caching and API routes
     - Cache competitor analysis for 12 hours
     - POST /api/competitors/analyze - analyze competitor (requires auth)
     - GET /api/competitors/:projectId - list competitors (requires auth + ownership)
     - Return competitor domain, keyword count, overlap data, lastAnalyzed
     - _Requirements: 8.1, 8.7, 15.3_
 
-- [ ] 12. Content optimizer service implementation (Pro feature)
-  - [ ] 12.1 Implement SERP results fetching
+- [x] 12. Content optimizer service implementation (Pro feature)
+  - [x] 12.1 Implement SERP results fetching
     - Fetch top 10 SERP results for target keyword
     - Use Puppeteer to scrape each result URL
     - Extract keywords and headings from each page
     - Cache SERP results for 24 hours
     - _Requirements: 9.2, 9.3_
 
-  - [ ] 12.2 Write property test for SERP retrieval
+  - [x] 12.2 Write property test for SERP retrieval
     - Property 35: SERP Results Retrieval
     - Validates: Requirements 9.2, 9.3
 
-  - [ ] 12.3 Implement OpenAI content analysis
+  - [x] 12.3 Implement OpenAI content analysis
     - Create prompt comparing user content against SERP results
     - Call OpenAI API with content and SERP summary
     - Parse response for score, missing keywords, suggested headings
     - Handle API errors gracefully with user-friendly messages
     - _Requirements: 9.4, 9.5, 9.6, 9.7, 9.8_
 
-  - [ ] 12.4 Write property test for content optimization
+  - [x] 12.4 Write property test for content optimization
     - Property 36: Content Optimization Response Structure
     - Validates: Requirements 9.6, 9.7, 9.8
 
-  - [ ] 12.5 Implement content scoring API route
+  - [x] 12.5 Implement content scoring API route
     - POST /api/content/score - score content (requires auth + Pro role)
     - Accept content and targetKeyword
     - Return score, missing keywords, suggested headings, analysis metrics
