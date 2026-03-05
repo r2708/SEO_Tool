@@ -4,6 +4,7 @@ import { responseFormatter } from './middleware/responseFormatter';
 import { errorHandler } from './middleware/errorHandler';
 import projectRoutes from './routes/projects';
 import keywordRoutes from './routes/keywords';
+import rankRoutes from './routes/rank';
 
 // Create Express application
 const app = express();
@@ -15,6 +16,7 @@ app.use(responseFormatter); // Response formatting
 // Mount API routes
 app.use('/api/projects', projectRoutes);
 app.use('/api/keywords', keywordRoutes);
+app.use('/api/rank', rankRoutes);
 
 // Global error handler (must be last)
 app.use(errorHandler);

@@ -21,11 +21,11 @@ export interface FormattedResponse extends Response {
  */
 export function responseFormatter(
   req: Request,
-  res: FormattedResponse,
+  res: Response,
   next: NextFunction
 ): void {
   // Add success method to response object
-  res.success = function (data: any, statusCode: number = 200): void {
+  (res as FormattedResponse).success = function (data: any, statusCode: number = 200): void {
     // Set Content-Type header
     this.setHeader('Content-Type', 'application/json');
     
