@@ -296,8 +296,8 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Property 55: Scraping Concurrency Limit
     - Validates: Requirements 16.6, 16.7
 
-- [ ] 10. SEO analyzer service implementation
-  - [ ] 10.1 Implement HTML parsing and element extraction
+- [x] 10. SEO analyzer service implementation
+  - [x] 10.1 Implement HTML parsing and element extraction
     - Extract title tag content and length
     - Extract meta description content and length
     - Count H1 and H2 tags, extract heading structure
@@ -306,11 +306,11 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Identify broken links by checking HTTP response codes
     - _Requirements: 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
 
-  - [ ] 10.2 Write property test for SEO element extraction
+  - [x] 10.2 Write property test for SEO element extraction
     - Property 29: SEO Analysis Element Extraction
     - Validates: Requirements 7.2, 7.3, 7.4, 7.5, 7.6, 7.7
 
-  - [ ] 10.3 Implement SEO scoring algorithm
+  - [x] 10.3 Implement SEO scoring algorithm
     - Title optimal (50-60 chars): +15 points
     - Meta description optimal (150-160 chars): +15 points
     - Single H1: +10 points
@@ -322,12 +322,12 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Ensure final score is 0-100
     - _Requirements: 7.8_
 
-  - [ ] 10.4 Write property tests for SEO scoring
+  - [x] 10.4 Write property tests for SEO scoring
     - Property 30: SEO Score Range
     - Property 31: SEO Analysis Response Completeness
     - Validates: Requirements 7.8, 7.9
 
-  - [ ] 10.5 Implement SEO score history storage and retrieval
+  - [x] 10.5 Implement SEO score history storage and retrieval
     - Store SEO score with projectId, url, score, full analysis JSON, timestamp
     - Retrieve score history ordered by timestamp descending
     - Support date range filtering
@@ -335,12 +335,12 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Return null for score change if no previous audit exists
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
-  - [ ] 10.6 Write property tests for score history
+  - [x] 10.6 Write property tests for score history
     - Property 41: SEO Score Storage Round-Trip
     - Property 42: Score Change Calculation
     - Validates: Requirements 12.1, 12.4
 
-  - [ ] 10.7 Implement SEO audit API route
+  - [x] 10.7 Implement SEO audit API route
     - POST /api/audit - analyze URL and optionally store score (requires auth)
     - Accept url and optional projectId
     - Return score, full analysis, recommendations, analyzedAt timestamp
