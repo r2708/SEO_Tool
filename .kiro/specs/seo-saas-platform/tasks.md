@@ -271,8 +271,8 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Validates: Requirements 11.5
 
 
-- [ ] 9. Web scraping infrastructure
-  - [ ] 9.1 Implement Puppeteer scraping service
+- [x] 9. Web scraping infrastructure
+  - [x] 9.1 Implement Puppeteer scraping service
     - Create scrapePage function that launches browser, navigates to URL with 30s timeout
     - Wait for JavaScript execution to complete (networkidle0)
     - Extract HTML content after rendering
@@ -280,19 +280,19 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Handle timeout errors with user-friendly message
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
 
-  - [ ] 9.2 Write property tests for scraping
+  - [x] 9.2 Write property tests for scraping
     - Property 52: Scraping Timeout Enforcement
     - Property 53: JavaScript Rendering Completion
     - Property 54: Browser Resource Cleanup
     - Validates: Requirements 16.2, 16.4, 16.5
 
-  - [ ] 9.3 Implement scraping queue with concurrency control
+  - [x] 9.3 Implement scraping queue with concurrency control
     - Create queue system that limits concurrent scraping to 5 operations
     - Queue additional requests when limit reached
     - Process queued requests as slots become available
     - _Requirements: 16.6, 16.7_
 
-  - [-] 9.4 Write property test for scraping concurrency
+  - [x] 9.4 Write property test for scraping concurrency
     - Property 55: Scraping Concurrency Limit
     - Validates: Requirements 16.6, 16.7
 
