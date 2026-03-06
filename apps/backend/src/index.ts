@@ -7,6 +7,7 @@ import keywordRoutes from './routes/keywords';
 import rankRoutes from './routes/rank';
 import auditRoutes from './routes/audit';
 import competitorRoutes from './routes/competitors';
+import dashboardRoutes from './routes/dashboard';
 
 // Create Express application
 const app = express();
@@ -21,6 +22,7 @@ app.use('/api/keywords', keywordRoutes);
 app.use('/api/rank', rankRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/competitors', competitorRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Global error handler (must be last)
 app.use(errorHandler);

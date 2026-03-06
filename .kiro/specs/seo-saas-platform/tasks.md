@@ -409,8 +409,8 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Return score, missing keywords, suggested headings, analysis metrics
     - _Requirements: 9.1, 9.5, 9.6, 9.7, 9.8_
 
-- [ ] 13. Dashboard service implementation
-  - [ ] 13.1 Implement dashboard metrics aggregation
+- [x] 13. Dashboard service implementation
+  - [x] 13.1 Implement dashboard metrics aggregation
     - Calculate total keywords across all user projects
     - Calculate average ranking position across all tracked keywords
     - Calculate rank change percentage vs previous 30-day period
@@ -419,12 +419,12 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Ensure calculation completes within 500ms
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ] 13.2 Write property tests for dashboard metrics
+  - [x] 13.2 Write property tests for dashboard metrics
     - Property 37: Dashboard Metrics Aggregation
     - Property 38: Dashboard Recent Scores
     - Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5
 
-  - [ ] 13.3 Implement dashboard caching and API route
+  - [x] 13.3 Implement dashboard caching and API route
     - Cache dashboard metrics for 5 minutes
     - GET /api/dashboard - get dashboard data (requires auth)
     - Return all metrics in single response
