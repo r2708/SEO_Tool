@@ -1,0 +1,22 @@
+'use client';
+
+export default function AuditPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">SEO Audit</h1>
+        <p className="text-gray-600 mt-1">Analyze on-page SEO elements</p>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <div className="text-6xl mb-4">🔍</div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          SEO Audit Tool
+        </h2>
+        <p className="text-gray-600">
+          This feature will be implemented in a future task
+        </p>
+      </div>
+    </div>
+  );
+}

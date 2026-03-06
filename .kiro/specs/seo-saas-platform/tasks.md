@@ -526,15 +526,15 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Allow access to dashboard routes only when authenticated
     - _Requirements: 3.1, 3.2_
 
-- [ ] 17. Frontend dashboard implementation
-  - [ ] 17.1 Create dashboard layout with navigation
+- [x] 17. Frontend dashboard implementation
+  - [x] 17.1 Create dashboard layout with navigation
     - Create dashboard layout component with sidebar
     - Add navigation links to Projects, Audit, Content Optimizer
     - Display user email and role in header
     - Add logout button
     - _Requirements: N/A (UI structure)_
 
-  - [ ] 17.2 Implement dashboard home page with metrics
+  - [x] 17.2 Implement dashboard home page with metrics
     - Fetch dashboard data from /api/dashboard
     - Display total keywords, average rank, rank change percentage
     - Display total projects count
@@ -542,7 +542,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Add loading states and error handling
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-  - [ ] 17.3 Create ranking chart component
+  - [x] 17.3 Create ranking chart component
     - Fetch ranking history from /api/rank/history
     - Display line chart with date on X-axis and position on Y-axis
     - Support filtering by keyword and date range
