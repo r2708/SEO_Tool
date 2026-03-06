@@ -485,7 +485,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Log startup success with port number
     - _Requirements: 18.6_
 
-- [ ] 15. Checkpoint - Backend validation
+- [x] 15. Checkpoint - Backend validation
   - Ensure all backend tests pass
   - Verify all API endpoints are accessible
   - Test authentication and authorization flows
@@ -494,8 +494,8 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
   - Ask the user if questions arise
 
 
-- [ ] 16. Frontend API client and authentication
-  - [ ] 16.1 Implement API client with JWT handling
+- [x] 16. Frontend API client and authentication
+  - [x] 16.1 Implement API client with JWT handling
     - Create APIClient class with baseURL configuration
     - Implement request method that adds Authorization header
     - Store JWT token in localStorage
@@ -503,7 +503,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Parse and throw errors from API responses
     - _Requirements: 2.3, 3.1_
 
-  - [ ] 16.2 Implement authentication context and hooks
+  - [x] 16.2 Implement authentication context and hooks
     - Create AuthContext with user state and auth methods
     - Implement useAuth hook for accessing auth state
     - Implement login function that calls API and stores token
@@ -512,7 +512,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Load user from token on app initialization
     - _Requirements: 1.1, 1.2, 2.1, 2.6_
 
-  - [ ] 16.3 Create login and registration pages
+  - [x] 16.3 Create login and registration pages
     - Create /login page with email and password form
     - Create /register page with email and password form
     - Add form validation (email format, password length)
@@ -520,7 +520,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Redirect to dashboard on success
     - _Requirements: 1.1, 2.1_
 
-  - [ ] 16.4 Implement protected route middleware
+  - [x] 16.4 Implement protected route middleware
     - Create middleware that checks for valid token
     - Redirect to /login if no token or expired
     - Allow access to dashboard routes only when authenticated

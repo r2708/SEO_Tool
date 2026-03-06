@@ -21,13 +21,16 @@ class APIClient {
       return config;
     });
 
-    // Add response interceptor to handle errors
+    // Add response interceptor to handle errors and token refresh
     this.client.interceptors.response.use(
       (response) => response,
-      (error) => {
+      async (error) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid - clear token
+          // Token expired or invalid - clear token and redirect to login
           this.clearToken();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
@@ -38,6 +41,8 @@ class APIClient {
     this.token = token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
+      // Also set as cookie for middleware
+      document.cookie = `token=${token}; path=/; max-age=${24 * 60 * 60}`; // 24 hours
     }
   }
 
@@ -45,6 +50,8 @@ class APIClient {
     this.token = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
+      // Clear cookie
+      document.cookie = 'token=; path=/; max-age=0';
     }
   }
 

@@ -2,6 +2,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { register, login } from '../services/auth/authService';
 import { ValidationError } from '../errors';
 import { FormattedResponse } from '../middleware/responseFormatter';
+import { authenticate, AuthenticatedRequest } from '../middleware/authenticate';
+import { prisma } from '../utils/db';
 
 const router = Router();
 
@@ -50,6 +52,47 @@ router.post('/login', async (req, res, next) => {
 
     // Return success response
     (res as FormattedResponse).success(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/auth/me
+ * Get current authenticated user profile
+ * 
+ * Requires authentication
+ */
+router.get('/me', authenticate, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      throw new ValidationError('User ID not found');
+    }
+
+    // Fetch user from database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new ValidationError('User not found');
+    }
+
+    // Return user profile
+    (res as FormattedResponse).success({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt.toISOString(),
+    });
   } catch (error) {
     next(error);
   }
