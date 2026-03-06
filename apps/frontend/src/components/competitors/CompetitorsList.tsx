@@ -1,4 +1,5 @@
 import type { Competitor } from '@seo-saas/shared-types';
+import { LoadingSpinner } from '@/components/shared';
 
 interface CompetitorsListProps {
   competitors: Competitor[];
@@ -10,10 +11,7 @@ export default function CompetitorsList({ competitors, loading, onReanalyze }: C
   if (loading) {
     return (
       <div className="bg-white shadow rounded-lg p-8">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading competitors...</span>
-        </div>
+        <LoadingSpinner text="Loading competitors..." />
       </div>
     );
   }

@@ -4,28 +4,60 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import type { ProjectWithStats } from '@seo-saas/shared-types';
+import Pagination from '@/components/shared/Pagination';
 
 export default function ProjectsPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(50);
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [currentPage]);
 
   const loadProjects = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<{ projects: ProjectWithStats[] }>('/api/projects');
+      const response = await apiClient.get<{ 
+        projects: ProjectWithStats[];
+        pagination?: {
+          page: number;
+          pageSize: number;
+          totalCount: number;
+          totalPages: number;
+        };
+      }>('/api/projects', {
+        params: {
+          page: currentPage,
+          pageSize,
+        },
+      });
       setProjects(response.projects);
+      
+      // Update pagination metadata if available
+      if (response.pagination) {
+        setTotalPages(response.pagination.totalPages);
+        setTotalCount(response.pagination.totalCount);
+      } else {
+        // Fallback if backend doesn't return pagination metadata yet
+        setTotalPages(1);
+        setTotalCount(response.projects.length);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load projects');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleCreateProject = () => {
@@ -102,59 +134,70 @@ export default function ProjectsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              onClick={() => handleProjectClick(project.id)}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {project.name}
-                  </h3>
-                  <p className="text-sm text-gray-600">{project.domain}</p>
-                </div>
-                {project.lastAuditScore !== undefined && (
-                  <div className="ml-4">
-                    <div
-                      className={`text-2xl font-bold ${
-                        project.lastAuditScore >= 80
-                          ? 'text-green-600'
-                          : project.lastAuditScore >= 60
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {project.lastAuditScore}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                onClick={() => handleProjectClick(project.id)}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      {project.name}
+                    </h3>
+                    <p className="text-sm text-gray-600">{project.domain}</p>
+                  </div>
+                  {project.lastAuditScore !== undefined && (
+                    <div className="ml-4">
+                      <div
+                        className={`text-2xl font-bold ${
+                          project.lastAuditScore >= 80
+                            ? 'text-green-600'
+                            : project.lastAuditScore >= 60
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {project.lastAuditScore}
+                      </div>
+                      <div className="text-xs text-gray-500">SEO Score</div>
                     </div>
-                    <div className="text-xs text-gray-500">SEO Score</div>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                <div>
-                  <div className="text-2xl font-semibold text-gray-900">
-                    {project.keywordCount}
-                  </div>
-                  <div className="text-xs text-gray-600">Keywords</div>
+                  )}
                 </div>
-                <div>
-                  <div className="text-2xl font-semibold text-gray-900">
-                    {project.competitorCount}
+
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                  <div>
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {project.keywordCount}
+                    </div>
+                    <div className="text-xs text-gray-600">Keywords</div>
                   </div>
-                  <div className="text-xs text-gray-600">Competitors</div>
+                  <div>
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {project.competitorCount}
+                    </div>
+                    <div className="text-xs text-gray-600">Competitors</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-xs text-gray-500">
+                  Created {new Date(project.createdAt).toLocaleDateString()}
                 </div>
               </div>
+            ))}
+          </div>
 
-              <div className="mt-4 text-xs text-gray-500">
-                Created {new Date(project.createdAt).toLocaleDateString()}
-              </div>
-            </div>
-          ))}
-        </div>
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalCount}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
+        </>
       )}
     </div>
   );

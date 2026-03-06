@@ -64,9 +64,9 @@ router.post('/research', authenticate, async (req: AuthenticatedRequest, res, ne
 
 /**
  * GET /api/keywords/:projectId
- * List all keywords for a project with current rank if available
+ * List all keywords for a project with current rank if available and pagination
  * Requires authentication and project ownership
- * Validates: Requirements 5.1, 5.2
+ * Validates: Requirements 5.1, 5.2, 20.4, 20.5
  */
 router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
@@ -79,8 +79,16 @@ router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, n
       throw new AuthorizationError('You do not have permission to access this project');
     }
 
+    // Parse pagination parameters
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
+
+    // Calculate skip and take for Prisma
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
     // Get keywords with current rank (uses caching)
-    const keywords = await keywordService.findByProject(projectId);
+    const { keywords, total } = await keywordService.findByProject(projectId, skip, take);
 
     // Format response
     const formattedKeywords = keywords.map(keyword => ({
@@ -93,7 +101,18 @@ router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, n
       lastUpdated: keyword.lastUpdated.toISOString(),
     }));
 
-    (res as FormattedResponse).success({ keywords: formattedKeywords });
+    // Calculate total pages
+    const totalPages = Math.ceil(total / pageSize);
+
+    (res as FormattedResponse).success({
+      keywords: formattedKeywords,
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages,
+      },
+    });
   } catch (error) {
     next(error);
   }

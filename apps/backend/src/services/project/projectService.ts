@@ -61,11 +61,17 @@ export async function create(
 }
 
 /**
- * Find all projects owned by a user
+ * Find all projects owned by a user with pagination
  * @param userId - ID of the user
+ * @param skip - Number of records to skip (for pagination)
+ * @param take - Number of records to take (for pagination)
  * @returns Array of projects with keyword and competitor counts
  */
-export async function findByUser(userId: string): Promise<ProjectWithCounts[]> {
+export async function findByUser(
+  userId: string,
+  skip?: number,
+  take?: number
+): Promise<ProjectWithCounts[]> {
   const projects = await prisma.project.findMany({
     where: { userId },
     include: {
@@ -79,6 +85,8 @@ export async function findByUser(userId: string): Promise<ProjectWithCounts[]> {
     orderBy: {
       createdAt: 'desc',
     },
+    skip,
+    take,
   });
 
   // Map to include counts as top-level properties

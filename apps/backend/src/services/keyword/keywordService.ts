@@ -160,14 +160,28 @@ function validateKeywordData(data: KeywordData): void {
 }
 
 /**
- * Find all keywords for a project with optional current rank
+ * Find all keywords for a project with optional current rank and pagination
  * @param projectId - Project ID
- * @returns Array of keywords with current rank if available
+ * @param skip - Number of records to skip (for pagination)
+ * @param take - Number of records to take (for pagination)
+ * @returns Object with keywords array and total count
  */
-export async function findByProject(projectId: string): Promise<KeywordWithRank[]> {
+export async function findByProject(
+  projectId: string,
+  skip?: number,
+  take?: number
+): Promise<{ keywords: KeywordWithRank[]; total: number }> {
+  // Get total count
+  const total = await prisma.keyword.count({
+    where: { projectId },
+  });
+
+  // Get paginated keywords
   const keywords = await prisma.keyword.findMany({
     where: { projectId },
     orderBy: { lastUpdated: 'desc' },
+    skip,
+    take,
   });
 
   // Get current rankings for each keyword (most recent date)
@@ -188,7 +202,7 @@ export async function findByProject(projectId: string): Promise<KeywordWithRank[
     })
   );
 
-  return keywordsWithRank;
+  return { keywords: keywordsWithRank, total };
 }
 
 /**

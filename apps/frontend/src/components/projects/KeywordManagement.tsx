@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import type { KeywordData } from '@seo-saas/shared-types';
+import Pagination from '@/components/shared/Pagination';
 
 interface KeywordManagementProps {
   projectId: string;
@@ -21,24 +22,56 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
   const [sortField, setSortField] = useState<SortField>('keyword');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [filterText, setFilterText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(50);
 
   useEffect(() => {
     loadKeywords();
-  }, [projectId]);
+  }, [projectId, currentPage]);
 
   const loadKeywords = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<{ keywords: KeywordData[] }>(
-        `/api/keywords/${projectId}`
+      const response = await apiClient.get<{ 
+        keywords: KeywordData[];
+        pagination?: {
+          page: number;
+          pageSize: number;
+          totalCount: number;
+          totalPages: number;
+        };
+      }>(
+        `/api/keywords/${projectId}`,
+        {
+          params: {
+            page: currentPage,
+            pageSize,
+          },
+        }
       );
       setKeywords(response.keywords);
+      
+      // Update pagination metadata if available
+      if (response.pagination) {
+        setTotalPages(response.pagination.totalPages);
+        setTotalCount(response.pagination.totalCount);
+      } else {
+        // Fallback if backend doesn't return pagination metadata yet
+        setTotalPages(1);
+        setTotalCount(response.keywords.length);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load keywords');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleResearch = async (e: React.FormEvent) => {
@@ -69,8 +102,9 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
         keywords: keywordList,
       });
 
-      // Clear input and reload keywords
+      {/* Clear input and reload keywords */}
       setKeywordInput('');
+      setCurrentPage(1); // Reset to first page
       await loadKeywords();
     } catch (err: any) {
       setResearchError(err.message || 'Failed to research keywords');
@@ -215,96 +249,107 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
           <p>No keywords yet. Research some keywords to get started!</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th
-                  onClick={() => handleSort('keyword')}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Keyword</span>
-                    <SortIcon field="keyword" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('searchVolume')}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Search Volume</span>
-                    <SortIcon field="searchVolume" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('difficulty')}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Difficulty</span>
-                    <SortIcon field="difficulty" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('cpc')}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>CPC</span>
-                    <SortIcon field="cpc" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('currentRank')}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Current Rank</span>
-                    <SortIcon field="currentRank" />
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedKeywords.map((keyword) => (
-                <tr key={keyword.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {keyword.keyword}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {keyword.searchVolume.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        keyword.difficulty >= 70
-                          ? 'bg-red-100 text-red-800'
-                          : keyword.difficulty >= 40
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {keyword.difficulty.toFixed(0)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    ${keyword.cpc.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {keyword.currentRank !== undefined ? keyword.currentRank : '—'}
-                  </td>
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th
+                    onClick={() => handleSort('keyword')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Keyword</span>
+                      <SortIcon field="keyword" />
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('searchVolume')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Search Volume</span>
+                      <SortIcon field="searchVolume" />
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('difficulty')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Difficulty</span>
+                      <SortIcon field="difficulty" />
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('cpc')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>CPC</span>
+                      <SortIcon field="cpc" />
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('currentRank')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Current Rank</span>
+                      <SortIcon field="currentRank" />
+                    </div>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedKeywords.map((keyword) => (
+                  <tr key={keyword.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {keyword.keyword}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {keyword.searchVolume.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          keyword.difficulty >= 70
+                            ? 'bg-red-100 text-red-800'
+                            : keyword.difficulty >= 40
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}
+                      >
+                        {keyword.difficulty.toFixed(0)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      ${keyword.cpc.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {keyword.currentRank !== undefined ? keyword.currentRank : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          {sortedKeywords.length === 0 && filterText && (
-            <div className="text-center py-8 text-gray-600">
-              No keywords match your filter
-            </div>
-          )}
-        </div>
+            {sortedKeywords.length === 0 && filterText && (
+              <div className="text-center py-8 text-gray-600">
+                No keywords match your filter
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalCount}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
+        </>
       )}
     </div>
   );

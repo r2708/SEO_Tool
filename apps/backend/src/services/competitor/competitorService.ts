@@ -210,11 +210,23 @@ export function calculateOverlap(
 }
 
 /**
- * Find all competitors for a project
+ * Find all competitors for a project with pagination
  * @param projectId - Project ID
- * @returns Array of competitors with keyword counts
+ * @param skip - Number of records to skip (for pagination)
+ * @param take - Number of records to take (for pagination)
+ * @returns Object with competitors array and total count
  */
-export async function findByProject(projectId: string): Promise<CompetitorWithCount[]> {
+export async function findByProject(
+  projectId: string,
+  skip?: number,
+  take?: number
+): Promise<{ competitors: CompetitorWithCount[]; total: number }> {
+  // Get total count
+  const total = await prisma.competitor.count({
+    where: { projectId },
+  });
+
+  // Get paginated competitors
   const competitors = await prisma.competitor.findMany({
     where: { projectId },
     include: {
@@ -223,9 +235,11 @@ export async function findByProject(projectId: string): Promise<CompetitorWithCo
       },
     },
     orderBy: { lastAnalyzed: 'desc' },
+    skip,
+    take,
   });
 
-  return competitors.map(competitor => ({
+  const competitorsWithCount = competitors.map(competitor => ({
     id: competitor.id,
     projectId: competitor.projectId,
     domain: competitor.domain,
@@ -233,6 +247,8 @@ export async function findByProject(projectId: string): Promise<CompetitorWithCo
     createdAt: competitor.createdAt,
     keywordCount: competitor._count.competitorKeywords,
   }));
+
+  return { competitors: competitorsWithCount, total };
 }
 
 /**

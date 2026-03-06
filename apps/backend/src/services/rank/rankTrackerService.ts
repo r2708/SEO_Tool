@@ -100,19 +100,23 @@ export async function track(
 }
 
 /**
- * Get ranking history for a project with optional filters
+ * Get ranking history for a project with optional filters and pagination
  * @param projectId - Project ID
  * @param keyword - Optional keyword filter
  * @param startDate - Optional start date filter
  * @param endDate - Optional end date filter
- * @returns Array of ranking history grouped by keyword
+ * @param skip - Number of records to skip (for pagination)
+ * @param take - Number of records to take (for pagination)
+ * @returns Object with ranking history array and total count
  */
 export async function getHistory(
   projectId: string,
   keyword?: string,
   startDate?: Date,
-  endDate?: Date
-): Promise<RankHistory[]> {
+  endDate?: Date,
+  skip?: number,
+  take?: number
+): Promise<{ history: RankHistory[]; total: number }> {
   // Default date range to last 30 days if not specified
   const end = endDate || new Date();
   const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -134,10 +138,15 @@ export async function getHistory(
     where.keyword = keyword;
   }
 
+  // Get total count
+  const total = await prisma.ranking.count({ where });
+
   // Fetch rankings ordered by date descending
   const rankings = await prisma.ranking.findMany({
     where,
     orderBy: { date: 'desc' },
+    skip,
+    take,
   });
 
   // Group by keyword
@@ -149,7 +158,7 @@ export async function getHistory(
     history: calculateChanges(group.history),
   }));
 
-  return withChanges;
+  return { history: withChanges, total };
 }
 
 /**

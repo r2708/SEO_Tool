@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
+import { LoadingSpinner } from '@/components/shared';
 import type { ProjectWithStats } from '@seo-saas/shared-types';
 import RankingChart from '@/components/dashboard/RankingChart';
 
@@ -39,14 +40,7 @@ export default function RankingsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading projects...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="large" text="Loading projects..." />;
   }
 
   if (error) {

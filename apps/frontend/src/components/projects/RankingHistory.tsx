@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import type { RankHistory } from '@seo-saas/shared-types';
+import Pagination from '@/components/shared/Pagination';
 import {
   LineChart,
   Line,
@@ -27,10 +28,14 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
     startDate: '',
     endDate: '',
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(50);
 
   useEffect(() => {
     loadRankings();
-  }, [projectId]);
+  }, [projectId, currentPage]);
 
   const loadRankings = async () => {
     try {
@@ -39,15 +44,35 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
 
       // Build query params
       const params = new URLSearchParams();
+      params.append('page', currentPage.toString());
+      params.append('pageSize', pageSize.toString());
       if (selectedKeyword) params.append('keyword', selectedKeyword);
       if (dateRange.startDate) params.append('startDate', dateRange.startDate);
       if (dateRange.endDate) params.append('endDate', dateRange.endDate);
 
       const queryString = params.toString();
-      const url = `/api/rank/history/${projectId}${queryString ? `?${queryString}` : ''}`;
+      const url = `/api/rank/history/${projectId}?${queryString}`;
 
-      const response = await apiClient.get<{ rankings: RankHistory[] }>(url);
+      const response = await apiClient.get<{ 
+        rankings: RankHistory[];
+        pagination?: {
+          page: number;
+          pageSize: number;
+          totalCount: number;
+          totalPages: number;
+        };
+      }>(url);
       setRankings(response.rankings);
+      
+      // Update pagination metadata if available
+      if (response.pagination) {
+        setTotalPages(response.pagination.totalPages);
+        setTotalCount(response.pagination.totalCount);
+      } else {
+        // Fallback if backend doesn't return pagination metadata yet
+        setTotalPages(1);
+        setTotalCount(response.rankings.length);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load ranking history');
     } finally {
@@ -55,13 +80,19 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   const handleFilterChange = () => {
+    setCurrentPage(1); // Reset to first page when filters change
     loadRankings();
   };
 
   const handleResetFilters = () => {
     setSelectedKeyword('');
     setDateRange({ startDate: '', endDate: '' });
+    setCurrentPage(1);
     setTimeout(() => loadRankings(), 0);
   };
 
@@ -313,6 +344,15 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalCount}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
         </>
       )}
     </div>

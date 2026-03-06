@@ -36,52 +36,62 @@ export class CachedRankTrackerService {
   }
 
   /**
-   * Get ranking history with caching
+   * Get ranking history with caching and pagination
    * @param projectId - Project ID
    * @param keyword - Optional keyword filter
    * @param startDate - Optional start date filter
    * @param endDate - Optional end date filter
-   * @returns Array of ranking history grouped by keyword
+   * @param skip - Number of records to skip (for pagination)
+   * @param take - Number of records to take (for pagination)
+   * @returns Object with ranking history array and total count
    */
   async getHistory(
     projectId: string,
     keyword?: string,
     startDate?: Date,
-    endDate?: Date
-  ): Promise<RankHistory[]> {
-    // Generate cache key based on filters
+    endDate?: Date,
+    skip?: number,
+    take?: number
+  ): Promise<{ history: RankHistory[]; total: number }> {
+    // Generate cache key based on filters (only for non-paginated requests)
     const cacheKey = this.generateCacheKey(projectId, keyword, startDate, endDate);
 
-    // Try to get from cache
-    try {
-      const cached = await this.cache.get<RankHistory[]>(cacheKey);
-      if (cached) {
-        logger.debug(`Cache hit for ranking history: ${cacheKey}`);
-        return cached;
+    // Try to get from cache (only for non-paginated requests)
+    if (skip === undefined && take === undefined) {
+      try {
+        const cached = await this.cache.get<{ history: RankHistory[]; total: number }>(cacheKey);
+        if (cached) {
+          logger.debug(`Cache hit for ranking history: ${cacheKey}`);
+          return cached;
+        }
+      } catch (error) {
+        logger.warn(`Cache retrieval failed for ${cacheKey}:`, { error: error instanceof Error ? error.message : String(error) });
+        // Continue to fetch from database
       }
-    } catch (error) {
-      logger.warn(`Cache retrieval failed for ${cacheKey}:`, { error: error instanceof Error ? error.message : String(error) });
-      // Continue to fetch from database
     }
 
     // Fetch from database
-    const history = await rankTrackerService.getHistory(
+    const result = await rankTrackerService.getHistory(
       projectId,
       keyword,
       startDate,
-      endDate
+      endDate,
+      skip,
+      take
     );
 
-    // Store in cache
-    try {
-      await this.cache.set(cacheKey, history, CacheTTL.RANKINGS);
-      logger.debug(`Cached ranking history: ${cacheKey}`);
-    } catch (error) {
-      logger.warn(`Cache storage failed for ${cacheKey}:`, { error: error instanceof Error ? error.message : String(error) });
-      // Continue without caching
+    // Store in cache (only for non-paginated requests)
+    if (skip === undefined && take === undefined) {
+      try {
+        await this.cache.set(cacheKey, result, CacheTTL.RANKINGS);
+        logger.debug(`Cached ranking history: ${cacheKey}`);
+      } catch (error) {
+        logger.warn(`Cache storage failed for ${cacheKey}:`, { error: error instanceof Error ? error.message : String(error) });
+        // Continue without caching
+      }
     }
 
-    return history;
+    return result;
   }
 
   /**

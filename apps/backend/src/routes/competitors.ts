@@ -68,9 +68,9 @@ router.post('/analyze', authenticate, async (req: AuthenticatedRequest, res, nex
 
 /**
  * GET /api/competitors/:projectId
- * List all competitors for a project with keyword counts and last analyzed timestamp
+ * List all competitors for a project with keyword counts, last analyzed timestamp, and pagination
  * Requires authentication and project ownership
- * Validates: Requirements 8.7
+ * Validates: Requirements 8.7, 20.4, 20.5
  */
 router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
@@ -83,8 +83,16 @@ router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, n
       throw new AuthorizationError('You do not have permission to access this project');
     }
 
+    // Parse pagination parameters
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
+
+    // Calculate skip and take for Prisma
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
     // Get competitors for project
-    const competitors = await competitorService.findByProject(projectId);
+    const { competitors, total } = await competitorService.findByProject(projectId, skip, take);
 
     // Format response
     const formattedCompetitors = competitors.map(competitor => ({
@@ -94,7 +102,18 @@ router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, n
       lastAnalyzed: competitor.lastAnalyzed.toISOString(),
     }));
 
-    (res as FormattedResponse).success({ competitors: formattedCompetitors });
+    // Calculate total pages
+    const totalPages = Math.ceil(total / pageSize);
+
+    (res as FormattedResponse).success({
+      competitors: formattedCompetitors,
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages,
+      },
+    });
   } catch (error) {
     next(error);
   }

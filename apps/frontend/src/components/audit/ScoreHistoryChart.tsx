@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { LoadingSpinner } from '@/components/shared';
 import type { ScoreHistory } from '@seo-saas/shared-types';
 import {
   LineChart,
@@ -99,9 +100,7 @@ export default function ScoreHistoryChart({ projectId }: ScoreHistoryChartProps)
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Score History</h3>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <LoadingSpinner size="large" />
       </div>
     );
   }

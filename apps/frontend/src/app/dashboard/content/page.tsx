@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
+import { LoadingSpinner } from '@/components/shared';
 import type { ContentScore } from '@seo-saas/shared-types';
 import ContentOptimizationResults from '@/components/content/ContentOptimizationResults';
 
@@ -156,11 +157,8 @@ export default function ContentPage() {
       {/* Loading State */}
       {loading && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
-          <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mb-4"></div>
-            <p className="text-gray-600 text-lg">Analyzing content...</p>
-            <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
-          </div>
+          <LoadingSpinner size="large" text="Analyzing content..." />
+          <p className="text-gray-500 text-sm text-center mt-4">This may take a few moments</p>
         </div>
       )}
 

@@ -71,12 +71,18 @@ export class CachedCompetitorService {
   }
 
   /**
-   * Find competitors by project (no caching for list operations)
+   * Find competitors by project with pagination (no caching for list operations)
    * @param projectId - Project ID
-   * @returns Array of competitors with keyword counts
+   * @param skip - Number of records to skip (for pagination)
+   * @param take - Number of records to take (for pagination)
+   * @returns Object with competitors array and total count
    */
-  async findByProject(projectId: string): Promise<CompetitorWithCount[]> {
-    return competitorService.findByProject(projectId);
+  async findByProject(
+    projectId: string,
+    skip?: number,
+    take?: number
+  ): Promise<{ competitors: CompetitorWithCount[]; total: number }> {
+    return competitorService.findByProject(projectId, skip, take);
   }
 
   /**

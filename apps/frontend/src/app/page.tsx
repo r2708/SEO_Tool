@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { LoadingSpinner } from '@/components/shared';
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -18,7 +19,7 @@ export default function Home() {
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-24">
-        <div className="text-xl">Loading...</div>
+        <LoadingSpinner size="large" text="Loading..." />
       </main>
     );
   }

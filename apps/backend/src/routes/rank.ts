@@ -62,9 +62,9 @@ router.post('/track', authenticate, async (req: AuthenticatedRequest, res, next)
 
 /**
  * GET /api/rank/history/:projectId
- * Get ranking history for a project with optional filters
+ * Get ranking history for a project with optional filters and pagination
  * Requires authentication and project ownership
- * Validates: Requirements 6.5, 6.6, 11.5, 15.2, 15.5
+ * Validates: Requirements 6.5, 6.6, 11.5, 15.2, 15.5, 20.4, 20.5
  */
 router.get('/history/:projectId', authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
@@ -77,6 +77,14 @@ router.get('/history/:projectId', authenticate, async (req: AuthenticatedRequest
     if (!isOwner) {
       throw new AuthorizationError('You do not have permission to access this project');
     }
+
+    // Parse pagination parameters
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
+
+    // Calculate skip and take for Prisma
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
 
     // Parse date parameters
     let parsedStartDate: Date | undefined;
@@ -97,11 +105,13 @@ router.get('/history/:projectId', authenticate, async (req: AuthenticatedRequest
     }
 
     // Get ranking history (uses caching)
-    const history = await rankTrackerService.getHistory(
+    const { history, total } = await rankTrackerService.getHistory(
       projectId,
       keyword as string | undefined,
       parsedStartDate,
-      parsedEndDate
+      parsedEndDate,
+      skip,
+      take
     );
 
     // Format response as array of keywords with history arrays
@@ -113,7 +123,18 @@ router.get('/history/:projectId', authenticate, async (req: AuthenticatedRequest
       })),
     }));
 
-    (res as FormattedResponse).success({ rankings });
+    // Calculate total pages
+    const totalPages = Math.ceil(total / pageSize);
+
+    (res as FormattedResponse).success({
+      rankings,
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages,
+      },
+    });
   } catch (error) {
     next(error);
   }

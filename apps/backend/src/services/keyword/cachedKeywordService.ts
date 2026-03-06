@@ -56,7 +56,7 @@ export class CachedKeywordService {
   }
 
   /**
-   * Find keywords by project with read-through caching
+   * Find keywords by project with read-through caching and pagination
    * Implements the read-through pattern:
    * 1. Try to get from cache
    * 2. If cache miss or error, fetch from database
@@ -64,41 +64,51 @@ export class CachedKeywordService {
    * 4. Return data
    * 
    * @param projectId - Project ID
-   * @returns Array of keywords with current rank
+   * @param skip - Number of records to skip (for pagination)
+   * @param take - Number of records to take (for pagination)
+   * @returns Object with keywords array and total count
    */
-  async findByProject(projectId: string): Promise<KeywordWithRank[]> {
+  async findByProject(
+    projectId: string,
+    skip?: number,
+    take?: number
+  ): Promise<{ keywords: KeywordWithRank[]; total: number }> {
     const cacheKey = CacheKeys.keywords(projectId);
 
-    // Try cache first
-    try {
-      const cached = await this.cache.get<KeywordWithRank[]>(cacheKey);
-      if (cached) {
-        logger.debug(`Cache hit for keywords: ${projectId}`);
-        return cached;
+    // Try cache first (only for non-paginated requests)
+    if (skip === undefined && take === undefined) {
+      try {
+        const cached = await this.cache.get<{ keywords: KeywordWithRank[]; total: number }>(cacheKey);
+        if (cached) {
+          logger.debug(`Cache hit for keywords: ${projectId}`);
+          return cached;
+        }
+      } catch (error) {
+        logger.warn(`Cache retrieval failed for key ${cacheKey}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Continue to database fallback
       }
-    } catch (error) {
-      logger.warn(`Cache retrieval failed for key ${cacheKey}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // Continue to database fallback
     }
 
-    // Cache miss - fetch from database
+    // Cache miss or paginated request - fetch from database
     logger.debug(`Cache miss for keywords: ${projectId}`);
-    const keywords = await keywordService.findByProject(projectId);
+    const result = await keywordService.findByProject(projectId, skip, take);
 
-    // Try to cache the result (don't fail if caching fails)
-    try {
-      await this.cache.set(cacheKey, keywords, CacheTTL.KEYWORDS);
-      logger.debug(`Cached keywords for project: ${projectId}`);
-    } catch (error) {
-      logger.warn(`Cache storage failed for key ${cacheKey}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // Continue - data is still returned from database
+    // Try to cache the result (only for non-paginated requests)
+    if (skip === undefined && take === undefined) {
+      try {
+        await this.cache.set(cacheKey, result, CacheTTL.KEYWORDS);
+        logger.debug(`Cached keywords for project: ${projectId}`);
+      } catch (error) {
+        logger.warn(`Cache storage failed for key ${cacheKey}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Continue - data is still returned from database
+      }
     }
 
-    return keywords;
+    return result;
   }
 
   /**

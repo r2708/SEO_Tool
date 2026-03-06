@@ -38,17 +38,30 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res, next) => {
 
 /**
  * GET /api/projects
- * List all projects for the authenticated user
+ * List all projects for the authenticated user with pagination
  * Returns enriched data with keyword count, competitor count, and last audit score
  * Requires authentication
- * Validates: Requirements 4.5
+ * Validates: Requirements 4.5, 20.4, 20.5
  */
 router.get('/', authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const userId = req.user!.id;
 
+    // Parse pagination parameters
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
+
+    // Calculate skip and take for Prisma
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
+    // Get total count
+    const total = await prisma.project.count({
+      where: { userId },
+    });
+
     // Get projects with counts
-    const projectsWithCounts = await projectService.findByUser(userId);
+    const projectsWithCounts = await projectService.findByUser(userId, skip, take);
 
     // Enrich with last audit score
     const enrichedProjects = await Promise.all(
@@ -72,7 +85,18 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res, next) => {
       })
     );
 
-    (res as FormattedResponse).success({ projects: enrichedProjects });
+    // Calculate total pages
+    const totalPages = Math.ceil(total / pageSize);
+
+    (res as FormattedResponse).success({
+      projects: enrichedProjects,
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages,
+      },
+    });
   } catch (error) {
     next(error);
   }

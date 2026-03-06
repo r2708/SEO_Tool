@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import type { Competitor, CompetitorAnalysis } from '@seo-saas/shared-types';
 import { CompetitorsList, CompetitorAnalysisResults } from '@/components/competitors';
+import Pagination from '@/components/shared/Pagination';
 
 export default function CompetitorsPage() {
   const params = useParams();
@@ -16,25 +17,57 @@ export default function CompetitorsPage() {
   const [error, setError] = useState<string | null>(null);
   const [competitorDomain, setCompetitorDomain] = useState('');
   const [analysisResult, setAnalysisResult] = useState<CompetitorAnalysis | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(50);
 
   useEffect(() => {
     apiClient.loadToken();
     loadCompetitors();
-  }, [projectId]);
+  }, [projectId, currentPage]);
 
   const loadCompetitors = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiClient.get<{ competitors: Competitor[] }>(
-        `/api/competitors/${projectId}`
+      const data = await apiClient.get<{ 
+        competitors: Competitor[];
+        pagination?: {
+          page: number;
+          pageSize: number;
+          totalCount: number;
+          totalPages: number;
+        };
+      }>(
+        `/api/competitors/${projectId}`,
+        {
+          params: {
+            page: currentPage,
+            pageSize,
+          },
+        }
       );
       setCompetitors(data.competitors);
+      
+      // Update pagination metadata if available
+      if (data.pagination) {
+        setTotalPages(data.pagination.totalPages);
+        setTotalCount(data.pagination.totalCount);
+      } else {
+        // Fallback if backend doesn't return pagination metadata yet
+        setTotalPages(1);
+        setTotalCount(data.competitors.length);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load competitors');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -62,6 +95,7 @@ export default function CompetitorsPage() {
       setCompetitorDomain('');
       
       // Reload competitors list to show the new one
+      setCurrentPage(1); // Reset to first page
       await loadCompetitors();
     } catch (err: any) {
       setError(err.message || 'Failed to analyze competitor');
@@ -152,6 +186,15 @@ export default function CompetitorsPage() {
         competitors={competitors}
         loading={loading}
         onReanalyze={handleReanalyze}
+      />
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalCount}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
       />
     </div>
   );
