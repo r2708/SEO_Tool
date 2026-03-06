@@ -431,8 +431,8 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - _Requirements: 10.7_
 
 
-- [ ] 14. Express server setup and integration
-  - [ ] 14.1 Create Express application with middleware stack
+- [x] 14. Express server setup and integration
+  - [x] 14.1 Create Express application with middleware stack
     - Initialize Express app
     - Add body parser for JSON
     - Add CORS middleware
@@ -442,7 +442,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Add global error handler (must be last)
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
 
-  - [ ] 14.2 Wire all API routes to Express app
+  - [x] 14.2 Wire all API routes to Express app
     - Mount auth routes at /api/auth
     - Mount project routes at /api/projects
     - Mount keyword routes at /api/keywords
@@ -453,18 +453,18 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Mount dashboard routes at /api/dashboard
     - _Requirements: All API requirements_
 
-  - [ ] 14.3 Implement database connection with pooling
+  - [x] 14.3 Implement database connection with pooling
     - Configure Prisma client with connection pool (min: 5, max: 20)
     - Implement connection health check
     - Handle connection errors gracefully
     - _Requirements: 20.1_
 
-  - [ ] 14.4 Write property test for database connection pooling
+  - [x] 14.4 Write property test for database connection pooling
     - Property 62: Batch Processing Size Limit
     - Property 64: Transaction Atomicity
     - Validates: Requirements 20.3, 20.6
 
-  - [ ] 14.5 Implement graceful shutdown
+  - [x] 14.5 Implement graceful shutdown
     - Listen for SIGTERM and SIGINT signals
     - Stop accepting new requests
     - Wait for in-flight requests to complete
@@ -473,11 +473,11 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Exit process
     - _Requirements: 20.7_
 
-  - [ ] 14.6 Write property test for graceful shutdown
+  - [x] 14.6 Write property test for graceful shutdown
     - Property 65: Graceful Shutdown
     - Validates: Requirements 20.7
 
-  - [ ] 14.7 Add server startup script
+  - [x] 14.7 Add server startup script
     - Validate environment variables
     - Connect to database
     - Connect to Redis

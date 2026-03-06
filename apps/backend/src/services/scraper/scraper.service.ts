@@ -51,7 +51,9 @@ export async function scrapePage(url: string): Promise<string> {
         logger.debug('Browser instance closed');
       } catch (closeError) {
         // Log but don't throw - browser cleanup failure shouldn't fail the scrape
-        logger.warn('Failed to close browser:', closeError);
+        logger.warn('Failed to close browser', {
+          error: closeError instanceof Error ? closeError.message : String(closeError)
+        });
       }
     }
   }
