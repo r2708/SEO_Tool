@@ -611,15 +611,15 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Support date range filtering
     - _Requirements: 12.1, 12.2, 12.3, 12.4_
 
-- [ ] 20. Frontend competitor analysis
-  - [ ] 20.1 Create competitor analysis page
+- [x] 20. Frontend competitor analysis
+  - [x] 20.1 Create competitor analysis page
     - Create /projects/:id/competitors page
     - Add competitor domain input form
     - Submit to POST /api/competitors/analyze
     - Display loading state during analysis
     - _Requirements: 8.1_
 
-  - [ ] 20.2 Display competitor analysis results
+  - [x] 20.2 Display competitor analysis results
     - Show competitor domain and last analyzed date
     - Display keyword overlap visualization (Venn diagram or lists)
     - Show shared keywords list
@@ -628,7 +628,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Display keyword counts for each category
     - _Requirements: 8.4, 8.5, 8.7_
 
-  - [ ] 20.3 Create competitors list component
+  - [x] 20.3 Create competitors list component
     - Fetch competitors from /api/competitors/:projectId
     - Display competitor cards with domain, keyword count, last analyzed
     - Add "Analyze" button to refresh analysis
