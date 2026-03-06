@@ -634,8 +634,8 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Add "Analyze" button to refresh analysis
     - _Requirements: 8.7_
 
-- [ ] 21. Frontend content optimizer (Pro feature)
-  - [ ] 21.1 Create content optimizer page with role check
+- [x] 21. Frontend content optimizer (Pro feature)
+  - [x] 21.1 Create content optimizer page with role check
     - Create /content page (Pro/Admin only)
     - Show upgrade prompt for Free users
     - Add content textarea and target keyword input
@@ -643,7 +643,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Display loading state during analysis
     - _Requirements: 9.1, 3.4_
 
-  - [ ] 21.2 Display content optimization results
+  - [x] 21.2 Display content optimization results
     - Show content score with visual indicator (0-100)
     - Display missing keywords list with importance indicators
     - Show suggested headings with structure
