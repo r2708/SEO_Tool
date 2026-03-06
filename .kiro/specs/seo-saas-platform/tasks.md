@@ -549,7 +549,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Invert Y-axis (position 1 at top)
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [x] 18. Frontend project management
+- [-] 18. Frontend project management
   - [x] 18.1 Create projects list page
     - Fetch projects from /api/projects
     - Display project cards with domain, keyword count, competitor count
@@ -586,15 +586,15 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - _Requirements: 6.5, 6.6, 11.1, 11.2, 11.3_
 
 
-- [ ] 19. Frontend SEO audit tool
-  - [ ] 19.1 Create SEO audit page
+- [x] 19. Frontend SEO audit tool
+  - [x] 19.1 Create SEO audit page
     - Create /audit page with URL input form
     - Add project selector (optional) to store score in history
     - Submit to POST /api/audit
     - Display loading state during analysis
     - _Requirements: 7.1_
 
-  - [ ] 19.2 Create audit results display component
+  - [x] 19.2 Create audit results display component
     - Display overall SEO score with visual indicator (0-100)
     - Show title analysis (content, length, optimal status)
     - Show meta description analysis (content, length, optimal status)
@@ -604,7 +604,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Display recommendations list
     - _Requirements: 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9_
 
-  - [ ] 19.3 Create SEO score history chart
+  - [x] 19.3 Create SEO score history chart
     - Fetch score history for selected project
     - Display line chart showing score over time
     - Show score change percentage

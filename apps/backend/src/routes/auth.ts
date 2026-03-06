@@ -3,7 +3,7 @@ import { register, login } from '../services/auth/authService';
 import { ValidationError } from '../errors';
 import { FormattedResponse } from '../middleware/responseFormatter';
 import { authenticate, AuthenticatedRequest } from '../middleware/authenticate';
-import { prisma } from '../utils/db';
+import { getPrismaClient } from '../utils/db';
 
 const router = Router();
 
@@ -72,6 +72,7 @@ router.get('/me', authenticate, async (req: AuthenticatedRequest, res, next) => 
     }
 
     // Fetch user from database
+    const prisma = getPrismaClient();
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
