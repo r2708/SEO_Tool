@@ -549,36 +549,36 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Invert Y-axis (position 1 at top)
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [ ] 18. Frontend project management
-  - [ ] 18.1 Create projects list page
+- [x] 18. Frontend project management
+  - [x] 18.1 Create projects list page
     - Fetch projects from /api/projects
     - Display project cards with domain, keyword count, competitor count
     - Add "Create Project" button
     - Link to project detail pages
     - _Requirements: 4.5_
 
-  - [ ] 18.2 Create project creation form
+  - [x] 18.2 Create project creation form
     - Create /projects/new page with domain and name inputs
     - Validate domain format
     - Submit to POST /api/projects
     - Redirect to project detail on success
     - _Requirements: 4.1, 4.2_
 
-  - [ ] 18.3 Create project detail page
+  - [x] 18.3 Create project detail page
     - Fetch project data from /api/projects/:id
     - Display project info (domain, name, created date)
     - Show tabs for Keywords, Rankings, Competitors
     - Add edit and delete buttons
     - _Requirements: 4.5, 4.6_
 
-  - [ ] 18.4 Implement keyword management interface
+  - [x] 18.4 Implement keyword management interface
     - Create keyword research form with keyword input (comma-separated)
     - Submit to POST /api/keywords/research
     - Display keyword table with search volume, difficulty, CPC, current rank
     - Add sorting and filtering
     - _Requirements: 5.1, 5.2_
 
-  - [ ] 18.5 Implement ranking history visualization
+  - [x] 18.5 Implement ranking history visualization
     - Fetch ranking history for project keywords
     - Display ranking chart component
     - Add date range picker for filtering
