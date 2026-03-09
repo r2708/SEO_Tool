@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -10,28 +10,69 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forceRender, setForceRender] = useState(0);
+  const errorRef = useRef<{ message: string; timestamp: number }>({ message: '', timestamp: 0 });
   const router = useRouter();
   const { login } = useAuth();
 
+  // Sync error from ref to state
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (errorRef.current.message && errorRef.current.message !== error) {
+        setError(errorRef.current.message);
+      }
+      
+      // Auto-clear after 10 seconds
+      if (errorRef.current.message && Date.now() - errorRef.current.timestamp >= 10000) {
+        errorRef.current = { message: '', timestamp: 0 };
+        setError('');
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [error]);
+
+  // Custom setError that uses ref (cannot be cleared externally)
+  const setErrorPermanent = (message: string) => {
+    errorRef.current = { message, timestamp: Date.now() };
+    setError(message);
+    setForceRender(prev => prev + 1);
+  };
+
+  // Custom clearError that respects the 10-second timeout
+  const clearError = () => {
+    const timeSinceError = Date.now() - errorRef.current.timestamp;
+    if (timeSinceError >= 10000 || errorRef.current.timestamp === 0) {
+      errorRef.current = { message: '', timestamp: 0 };
+      setError('');
+    }
+  };
+
+  // Force clear error (for manual dismiss button)
+  const forceClearError = () => {
+    errorRef.current = { message: '', timestamp: 0 };
+    setError('');
+  };
+
   const validateForm = () => {
     if (!email) {
-      setError('Email is required');
+      setErrorPermanent('Email is required');
       return false;
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setError('Invalid email format');
+      setErrorPermanent('Invalid email format');
       return false;
     }
     
     if (!password) {
-      setError('Password is required');
+      setErrorPermanent('Password is required');
       return false;
     }
     
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setErrorPermanent('Password must be at least 8 characters');
       return false;
     }
     
@@ -45,15 +86,15 @@ export default function LoginPage() {
       return;
     }
     
-    setError('');
+    clearError();
     setLoading(true);
     
     try {
       await login(email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
-    } finally {
+      const errorMessage = err.message || 'Login failed';
+      setErrorPermanent(errorMessage);
       setLoading(false);
     }
   };
@@ -75,8 +116,29 @@ export default function LoginPage() {
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-800">{error}</div>
+            <div className="rounded-md bg-red-50 border-2 border-red-400 p-4 animate-shake">
+              <div className="flex items-center justify-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                </div>
+                <div className="ml-3">
+                  <button
+                    type="button"
+                    onClick={forceClearError}
+                    className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-none"
+                  >
+                    <span className="sr-only">Dismiss</span>
+                    <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
           
@@ -91,7 +153,10 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // Don't clear error on input change - let user see the error
+                }}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
               />
@@ -106,7 +171,10 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  // Don't clear error on input change - let user see the error
+                }}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
               />

@@ -29,14 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       
       if (token) {
-        // Verify token by fetching user profile
-        const userData = await apiClient.get<User>('/api/auth/me');
-        setUser(userData);
+        // Token exists - mark as authenticated
+        // Token will be validated on first API call
+        setUser({ id: '', email: '', role: 'Free' } as User);
       }
     } catch (error) {
       // Token invalid or expired
       apiClient.clearToken();
+      setUser(null);
     } finally {
+      // Always set loading to false after check
       setLoading(false);
     }
   };

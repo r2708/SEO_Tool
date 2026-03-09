@@ -29,7 +29,11 @@ class APIClient {
           // Token expired or invalid - clear token and redirect to login
           this.clearToken();
           if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            // Only redirect if not already on login/register page
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/login' && currentPath !== '/register') {
+              window.location.href = '/login';
+            }
           }
         }
         return Promise.reject(error);
