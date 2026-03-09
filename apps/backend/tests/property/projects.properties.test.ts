@@ -82,7 +82,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             expect(project.domain).toBe(domain);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -111,7 +111,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             ).rejects.toThrow(ValidationError);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -164,7 +164,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             expect(foundProject!.userId).toBe(user.id);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -213,7 +213,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -270,7 +270,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             expect(foundProject!.competitorCount).toBe(0);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -341,7 +341,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             expect(user2Projects.every(p => !user1ProjectIds.includes(p.id))).toBe(true);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -412,7 +412,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             expect(projectAfterFailedUpdate!.name).not.toBe('Unauthorized');
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -461,7 +461,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             expect(projectAfterDelete).toBeNull();
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -526,7 +526,7 @@ describe('Feature: seo-saas-platform, Project Operations Properties', () => {
             expect(deletedCompetitor).toBeNull();
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });

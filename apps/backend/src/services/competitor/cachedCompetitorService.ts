@@ -24,6 +24,7 @@ export class CachedCompetitorService {
   /**
    * Analyze competitor with caching
    * Performs analysis and caches results for 12 hours
+   * Invalidates existing cache to ensure fresh analysis
    * @param projectId - Project ID
    * @param competitorDomain - Competitor domain to analyze
    * @returns Competitor analysis with overlap data
@@ -34,26 +35,19 @@ export class CachedCompetitorService {
   ): Promise<CompetitorAnalysis> {
     const cacheKey = CacheKeys.competitor(projectId, competitorDomain);
 
-    // Try cache first
+    // Invalidate existing cache to ensure fresh analysis
     try {
-      const cached = await this.cache.get<CompetitorAnalysis>(cacheKey);
-      if (cached) {
-        logger.debug(`Cache hit for competitor: ${projectId}:${competitorDomain}`);
-        // Convert date strings back to Date objects
-        return {
-          ...cached,
-          lastAnalyzed: new Date(cached.lastAnalyzed),
-        };
-      }
+      await this.cache.del(cacheKey);
+      logger.debug(`Invalidated cache before analysis for: ${projectId}:${competitorDomain}`);
     } catch (error) {
-      logger.warn(`Cache retrieval failed for key ${cacheKey}`, {
+      logger.warn(`Cache invalidation failed for key ${cacheKey}`, {
         error: error instanceof Error ? error.message : String(error),
       });
       // Continue to analysis
     }
 
-    // Cache miss - perform analysis
-    logger.debug(`Cache miss for competitor: ${projectId}:${competitorDomain}`);
+    // Perform analysis
+    logger.debug(`Analyzing competitor: ${projectId}:${competitorDomain}`);
     const analysis = await competitorService.analyze(projectId, competitorDomain);
 
     // Try to cache the result (don't fail if caching fails)

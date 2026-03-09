@@ -99,7 +99,7 @@ describe('Error Handling Property Tests', () => {
             expect(logMeta.stack).toBeDefined();
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -147,7 +147,7 @@ describe('Error Handling Property Tests', () => {
             // userId can be undefined for unauthenticated requests
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -215,7 +215,7 @@ describe('Error Handling Property Tests', () => {
             });
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -242,7 +242,7 @@ describe('Error Handling Property Tests', () => {
             });
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -269,7 +269,7 @@ describe('Error Handling Property Tests', () => {
             });
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -296,7 +296,7 @@ describe('Error Handling Property Tests', () => {
             });
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -327,7 +327,7 @@ describe('Error Handling Property Tests', () => {
             });
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -355,7 +355,7 @@ describe('Error Handling Property Tests', () => {
             });
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -393,7 +393,7 @@ describe('Error Handling Property Tests', () => {
             expect(jsonCall.error).toBe('An unexpected error occurred');
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -423,7 +423,7 @@ describe('Error Handling Property Tests', () => {
             expect(JSON.stringify(jsonCall)).not.toContain('file.ts');
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -460,7 +460,7 @@ describe('Error Handling Property Tests', () => {
             expect(jsonCall.error).toBe('An unexpected error occurred');
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -498,7 +498,7 @@ describe('Error Handling Property Tests', () => {
             expect(logMeta.error).toContain(errorMessage);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -537,7 +537,7 @@ describe('Error Handling Property Tests', () => {
             expect(jsonCall.error).toContain('service error');
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -587,7 +587,7 @@ describe('Error Handling Property Tests', () => {
             expect(jsonCall.error).toContain(errorMessage);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });

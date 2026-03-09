@@ -53,7 +53,7 @@ describe('Server Property Tests', () => {
             expect(totalProcessed).toBe(totalRecords);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 

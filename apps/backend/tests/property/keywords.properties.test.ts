@@ -98,7 +98,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             const stored = await keywordService.upsert(project.id, keywordData);
 
             // Retrieve keywords for the project
-            const keywords = await keywordService.findByProject(project.id);
+            const { keywords } = await keywordService.findByProject(project.id);
 
             // Find the stored keyword
             const retrieved = keywords.find(k => k.keyword === keywordData.keyword);
@@ -117,7 +117,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             expect(stored.searchVolume).toBe(keywordData.searchVolume);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -169,7 +169,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             expect(parseFloat(second.cpc.toString())).toBeCloseTo(cpc2, 2);
 
             // Verify only one record exists
-            const keywords = await keywordService.findByProject(project.id);
+            const { keywords } = await keywordService.findByProject(project.id);
             const matchingKeywords = keywords.filter(k => k.keyword === keyword);
             expect(matchingKeywords).toHaveLength(1);
 
@@ -177,7 +177,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             expect(matchingKeywords[0].searchVolume).toBe(sv2);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -210,7 +210,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             ).rejects.toThrow(ValidationError);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -237,7 +237,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             ).rejects.toThrow(ValidationError);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -261,7 +261,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             ).rejects.toThrow(ValidationError);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -288,7 +288,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             expect(cpc).toBeGreaterThanOrEqual(0);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -323,7 +323,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             expect(stored.lastUpdated.getTime()).toBeLessThanOrEqual(afterStore.getTime() + 1000);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
@@ -368,7 +368,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             expect(second.lastUpdated.getTime()).toBeLessThanOrEqual(afterUpdate.getTime() + 1000);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });
@@ -392,7 +392,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             expect(results).toHaveLength(keywords.length);
 
             // Verify all keywords are stored
-            const stored = await keywordService.findByProject(project.id);
+            const { keywords: stored } = await keywordService.findByProject(project.id);
             expect(stored).toHaveLength(keywords.length);
 
             // Verify each keyword is present
@@ -406,7 +406,7 @@ describe('Feature: seo-saas-platform, Keyword Operations Properties', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
   });

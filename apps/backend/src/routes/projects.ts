@@ -49,7 +49,8 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res, next) => {
 
     // Parse pagination parameters
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
+    const parsedPageSize = parseInt(req.query.pageSize as string);
+    const pageSize = Math.min(100, Math.max(1, isNaN(parsedPageSize) ? 50 : parsedPageSize));
 
     // Calculate skip and take for Prisma
     const skip = (page - 1) * pageSize;

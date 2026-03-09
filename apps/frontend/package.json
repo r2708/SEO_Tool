@@ -5,10 +5,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@seo-saas/shared-types": "*"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/jest": "^30.0.0"
+  }
 }

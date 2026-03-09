@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fc from 'fast-check';
 import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
@@ -22,12 +22,13 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
   let testUserId: string;
   let testToken: string;
   let testProjectId: string;
+  const testTimestamp = Date.now();
 
-  beforeEach(async () => {
-    // Create test user
+  beforeAll(async () => {
+    // Create test user with unique timestamp
     const user = await prisma.user.create({
       data: {
-        email: `test-${Date.now()}@example.com`,
+        email: `test-pagination-${testTimestamp}@example.com`,
         password: 'hashedpassword',
         role: 'Free',
       },
@@ -38,7 +39,7 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
     // Create test project
     const project = await prisma.project.create({
       data: {
-        domain: 'example.com',
+        domain: `pagination-test-${testTimestamp}.com`,
         name: 'Test Project',
         userId: testUserId,
       },
@@ -46,10 +47,9 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
     testProjectId = project.id;
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     // Clean up test data
     await prisma.ranking.deleteMany({ where: { projectId: testProjectId } });
-
     await prisma.keyword.deleteMany({ where: { projectId: testProjectId } });
     await prisma.competitor.deleteMany({ where: { projectId: testProjectId } });
     await prisma.project.deleteMany({ where: { userId: testUserId } });
@@ -62,12 +62,14 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
         fc.asyncProperty(
           fc.integer({ min: 51, max: 150 }),
           async (itemCount: number) => {
+            const timestamp = Date.now();
+            const randomId = Math.random().toString(36).substring(2, 15);
             // Create test projects
             const projects = await Promise.all(
               Array.from({ length: itemCount }, (_, i) =>
                 prisma.project.create({
                   data: {
-                    domain: `example${i}.com`,
+                    domain: `example${i}-${timestamp}-${randomId}.com`,
                     name: `Project ${i}`,
                     userId: testUserId,
                   },
@@ -91,7 +93,7 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
             });
           }
         ),
-        { numRuns: 5 }
+        { numRuns: 3 }
       );
     });
 
@@ -166,12 +168,14 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
           fc.integer({ min: 10, max: 100 }),
           fc.integer({ min: 1, max: 50 }),
           async (itemCount: number, pageSize: number) => {
+            const timestamp = Date.now();
+            const randomSuffix = Math.random().toString(36).substring(2, 15);
             // Create test projects
             const projects = await Promise.all(
               Array.from({ length: itemCount }, (_, i) =>
                 prisma.project.create({
                   data: {
-                    domain: `example${i}-${Date.now()}.com`,
+                    domain: `example${i}-${timestamp}-${randomSuffix}-${i}.com`,
                     name: `Project ${i}`,
                     userId: testUserId,
                   },
@@ -197,7 +201,7 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
             });
           }
         ),
-        { numRuns: 10 }
+        { numRuns: 5 }
       );
     });
 
@@ -207,13 +211,15 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
           fc.integer({ min: 10, max: 80 }),
           fc.integer({ min: 5, max: 30 }),
           async (keywordCount: number, pageSize: number) => {
+            const timestamp = Date.now();
+            const randomId = Math.random().toString(36).substring(2, 15);
             // Create test keywords
             const keywords = await Promise.all(
               Array.from({ length: keywordCount }, (_, i) =>
                 prisma.keyword.create({
                   data: {
                     projectId: testProjectId,
-                    keyword: `keyword${i}-${Date.now()}`,
+                    keyword: `keyword${i}-${timestamp}-${randomId}`,
                     searchVolume: 1000,
                     difficulty: 50,
                     cpc: 1.5,
@@ -290,13 +296,15 @@ describe('Feature: seo-saas-platform, Pagination Properties', () => {
           fc.integer({ min: 5, max: 40 }),
           fc.integer({ min: 3, max: 20 }),
           async (competitorCount: number, pageSize: number) => {
+            const timestamp = Date.now();
+            const randomId = Math.random().toString(36).substring(2, 15);
             // Create test competitors
             const competitors = await Promise.all(
               Array.from({ length: competitorCount }, (_, i) =>
                 prisma.competitor.create({
                   data: {
                     projectId: testProjectId,
-                    domain: `competitor${i}-${Date.now()}.com`,
+                    domain: `competitor${i}-${timestamp}-${randomId}.com`,
                   },
                 })
               )

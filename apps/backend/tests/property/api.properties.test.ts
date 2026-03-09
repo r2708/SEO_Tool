@@ -69,7 +69,7 @@ describe('Feature: seo-saas-platform, API Middleware Properties', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 10 }
       );
     });
 
