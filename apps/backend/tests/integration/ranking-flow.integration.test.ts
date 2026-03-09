@@ -189,7 +189,7 @@ describe('Ranking Tracking and History Retrieval Flow Integration Tests', () => 
           position: 18,
         });
 
-      expect(secondTrack.status).toBe(201);
+      expect(secondTrack.status).toBe(200); // 200 for update, not 201
 
       // Verify only one ranking exists with updated position
       const history = await request(app)

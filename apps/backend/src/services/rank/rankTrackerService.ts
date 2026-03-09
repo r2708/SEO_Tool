@@ -69,6 +69,19 @@ export async function track(
   const dateString = formatDate(normalizedDate);
 
   // Upsert ranking (update if exists for same keyword + date, create if not)
+  // Check if ranking exists first to determine if this is create or update
+  const existingRanking = await prisma.ranking.findUnique({
+    where: {
+      projectId_keyword_date: {
+        projectId,
+        keyword,
+        date: normalizedDate,
+      },
+    },
+  });
+
+  const isUpdate = existingRanking !== null;
+
   const ranking = await prisma.ranking.upsert({
     where: {
       projectId_keyword_date: {
@@ -88,7 +101,7 @@ export async function track(
     },
   });
 
-  logger.info(`Tracked ranking for keyword "${keyword}" at position ${position} for project ${projectId}`);
+  logger.info(`${isUpdate ? 'Updated' : 'Created'} ranking for keyword "${keyword}" at position ${position} for project ${projectId}`);
 
   return {
     id: ranking.id,
@@ -96,6 +109,7 @@ export async function track(
     keyword: ranking.keyword,
     position: ranking.position,
     date: formatDate(ranking.date),
+    isUpdate,
   };
 }
 

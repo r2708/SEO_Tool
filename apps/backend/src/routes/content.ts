@@ -18,7 +18,7 @@ router.post('/score', authenticate, requirePro, async (req: AuthenticatedRequest
 
     // Validate request body
     if (!content || typeof content !== 'string') {
-      throw new ValidationError('content is required and must be a string');
+      throw new ValidationError('Content cannot be empty');
     }
 
     if (!targetKeyword || typeof targetKeyword !== 'string') {

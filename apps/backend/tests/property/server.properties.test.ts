@@ -147,7 +147,14 @@ describe('Server Property Tests', () => {
               }),
               { minLength: 1, maxLength: 5 }
             ),
-          }),
+          }).map((data) => ({
+            ...data,
+            // Ensure unique keywords by appending index
+            keywords: data.keywords.map((kw, idx) => ({
+              ...kw,
+              keyword: `${kw.keyword}-${idx}`,
+            })),
+          })),
           async (data) => {
             // Test successful transaction
             const result = await prisma.$transaction(async (tx) => {

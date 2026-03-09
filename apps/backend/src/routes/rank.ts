@@ -47,6 +47,9 @@ router.post('/track', authenticate, async (req: AuthenticatedRequest, res, next)
     // Track ranking (validates position constraints)
     const result = await rankTrackerService.track(projectId, keyword, position);
 
+    // Use 201 for creates, 200 for updates
+    const statusCode = result.isUpdate ? 200 : 201;
+
     // Format response
     (res as FormattedResponse).success({
       id: result.id,
@@ -54,7 +57,7 @@ router.post('/track', authenticate, async (req: AuthenticatedRequest, res, next)
       keyword: result.keyword,
       position: result.position,
       date: result.date,
-    });
+    }, statusCode);
   } catch (error) {
     next(error);
   }

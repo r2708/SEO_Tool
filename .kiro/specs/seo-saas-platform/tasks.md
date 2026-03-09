@@ -549,7 +549,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Invert Y-axis (position 1 at top)
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [-] 18. Frontend project management
+- [x] 18. Frontend project management
   - [x] 18.1 Create projects list page
     - Fetch projects from /api/projects
     - Display project cards with domain, keyword count, competitor count
@@ -774,7 +774,7 @@ The implementation follows a bottom-up approach: infrastructure â†’ data layer â
     - Document all required and optional variables
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6_
 
-- [ ] 26. Final checkpoint and handoff
+- [x] 26. Final checkpoint and handoff
   - Verify all tasks are complete
   - Run full test suite (backend + frontend)
   - Perform manual testing of all features

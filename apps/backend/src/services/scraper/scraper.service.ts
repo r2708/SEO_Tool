@@ -13,13 +13,19 @@ export async function scrapePage(url: string): Promise<string> {
   let browser: Browser | null = null;
 
   try {
-    // Launch browser
+    // Launch browser with new headless mode for better stability
     browser = await puppeteer.launch({
-      headless: true,
+      headless: 'new',
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
     const page = await browser.newPage();
+    
+    // Set default navigation timeout
+    await page.setDefaultNavigationTimeout(30000);
+    
+    // Add small delay after page creation to ensure frame initialization
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Navigate to URL with 30-second timeout
     // Wait for networkidle0 to ensure JavaScript execution completes

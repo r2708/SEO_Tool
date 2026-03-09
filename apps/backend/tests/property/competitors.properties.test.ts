@@ -392,7 +392,9 @@ describe('Feature: seo-saas-platform, Competitor Operations Properties', () => {
             expect(retrieved).toBeDefined();
             expect(retrieved!.domain).toBe(competitorDomain);
             expect(retrieved!.projectId).toBe(project.id);
-            expect(retrieved!.keywordCount).toBe(keywords.length);
+            // Keyword count should match unique keywords (duplicates are removed)
+            const uniqueKeywordCount = new Set(keywords).size;
+            expect(retrieved!.keywordCount).toBe(uniqueKeywordCount);
 
             // Verify lastAnalyzed timestamp is within time window
             expect(retrieved!.lastAnalyzed).toBeDefined();
