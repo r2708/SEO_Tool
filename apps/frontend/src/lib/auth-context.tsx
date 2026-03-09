@@ -29,9 +29,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       
       if (token) {
-        // Token exists - mark as authenticated
-        // Token will be validated on first API call
-        setUser({ id: '', email: '', role: 'Free' } as User);
+        // Decode JWT token to get user info
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          
+          // Set user from token payload
+          setUser({
+            id: payload.userId || '',
+            email: payload.email || '',
+            role: payload.role || 'Free',
+          } as User);
+        } catch (decodeError) {
+          // Token decode failed - clear token
+          apiClient.clearToken();
+          setUser(null);
+        }
       }
     } catch (error) {
       // Token invalid or expired

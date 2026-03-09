@@ -33,12 +33,17 @@ model User {
 
 // Project model - represents an SEO project for a specific domain
 model Project {
-  id        String   @id @default(uuid())
-  domain    String
-  name      String
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(uuid())
+  domain          String
+  name            String
+  userId          String    // Foreign key to User (needed for relations)
+  ownerEmail      String?   // Email of project owner
+  createdByEmail  String?   // Email of user who created
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  updatedByEmail  String?   // Email of user who last updated
+  deletedAt       DateTime? // Soft delete timestamp
+  deletedByEmail  String?   // Email of user who deleted
   
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   keywords    Keyword[]
@@ -48,6 +53,7 @@ model Project {
   
   @@index([userId])
   @@index([domain])
+  @@index([deletedAt])
 }
 
 // Keyword model - stores keyword research data for projects

@@ -19,17 +19,23 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { domain, name } = req.body;
     const userId = req.user!.id;
+    const userEmail = req.user!.email;
 
     // Create project
-    const project = await projectService.create(userId, domain, name);
+    const project = await projectService.create(userId, userEmail, domain, name);
 
     // Return project data
     (res as FormattedResponse).success({
       id: project.id,
+      ownerEmail: project.ownerEmail,
       domain: project.domain,
       name: project.name,
-      userId: project.userId,
+      createdByEmail: project.createdByEmail,
       createdAt: project.createdAt.toISOString(),
+      updatedAt: project.updatedAt.toISOString(),
+      updatedByEmail: project.updatedByEmail,
+      deletedAt: project.deletedAt?.toISOString() || null,
+      deletedByEmail: project.deletedByEmail,
     }, 201);
   } catch (error) {
     next(error);
@@ -170,10 +176,11 @@ router.put('/:id', authenticate, async (req: AuthenticatedRequest, res, next) =>
   try {
     const projectId = req.params.id;
     const userId = req.user!.id;
+    const userEmail = req.user!.email;
     const { domain, name } = req.body;
 
     // Update project (service handles ownership verification)
-    const updatedProject = await projectService.update(projectId, userId, { domain, name });
+    const updatedProject = await projectService.update(projectId, userId, userEmail, { domain, name });
 
     (res as FormattedResponse).success({
       id: updatedProject.id,
@@ -196,9 +203,10 @@ router.delete('/:id', authenticate, async (req: AuthenticatedRequest, res, next)
   try {
     const projectId = req.params.id;
     const userId = req.user!.id;
+    const userEmail = req.user!.email;
 
-    // Delete project (service handles ownership verification and cascade delete)
-    await projectService.deleteProject(projectId, userId);
+    // Delete project (service handles ownership verification and soft delete)
+    await projectService.deleteProject(projectId, userId, userEmail);
 
     (res as FormattedResponse).success({});
   } catch (error) {

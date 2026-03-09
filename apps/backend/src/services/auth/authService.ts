@@ -62,7 +62,7 @@ export async function register(email: string, password: string): Promise<AuthRes
   });
 
   // Generate JWT token
-  const token = generateToken(user.id, user.role);
+  const token = generateToken(user.id, user.email, user.role);
 
   // Return token and user profile data
   return {
@@ -102,7 +102,7 @@ export async function login(email: string, password: string): Promise<AuthResult
   }
 
   // Generate JWT token
-  const token = generateToken(user.id, user.role);
+  const token = generateToken(user.id, user.email, user.role);
 
   // Return token and user profile data
   return {

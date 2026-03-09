@@ -9,8 +9,8 @@ import { logger } from '../utils/logger';
  * Rate limits per user role (requests per hour)
  */
 const RATE_LIMITS: Record<'Free' | 'Pro' | 'Admin', number> = {
-  Free: 100,
-  Pro: 1000,
+  Free: 500,    // Increased from 100 to 500
+  Pro: 2000,    // Increased from 1000 to 2000
   Admin: Infinity, // Unlimited
 };
 

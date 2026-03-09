@@ -33,6 +33,7 @@ export function validateDomain(domain: string): boolean {
 /**
  * Create a new project for a user
  * @param userId - ID of the user creating the project
+ * @param userEmail - Email of the user creating the project
  * @param domain - Domain for the project (e.g., "example.com")
  * @param name - Optional project name (defaults to domain)
  * @returns Created project
@@ -40,6 +41,7 @@ export function validateDomain(domain: string): boolean {
  */
 export async function create(
   userId: string,
+  userEmail: string,
   domain: string,
   name?: string
 ): Promise<Project> {
@@ -48,12 +50,15 @@ export async function create(
     throw new ValidationError('Invalid domain format. Domain should not include protocol (e.g., use "example.com" not "https://example.com")');
   }
 
-  // Create project with empty keywords and competitors collections
+  // Create project with creator information
   const project = await prisma.project.create({
     data: {
       userId,
+      ownerEmail: userEmail,
       domain,
       name: name || domain, // Default name to domain if not provided
+      createdByEmail: userEmail,
+      // updatedByEmail should be null on creation (only set when actually updated)
     },
   });
 
@@ -61,7 +66,7 @@ export async function create(
 }
 
 /**
- * Find all projects owned by a user with pagination
+ * Find all projects owned by a user with pagination (excludes soft-deleted projects)
  * @param userId - ID of the user
  * @param skip - Number of records to skip (for pagination)
  * @param take - Number of records to take (for pagination)
@@ -73,7 +78,10 @@ export async function findByUser(
   take?: number
 ): Promise<ProjectWithCounts[]> {
   const projects = await prisma.project.findMany({
-    where: { userId },
+    where: { 
+      userId,
+      deletedAt: null, // Only show non-deleted projects
+    },
     include: {
       _count: {
         select: {
@@ -98,14 +106,19 @@ export async function findByUser(
 }
 
 /**
- * Find a project by ID
+ * Find a project by ID (excludes soft-deleted projects)
  * @param projectId - ID of the project
- * @returns Project if found, null otherwise
+ * @returns Project if found and not deleted, null otherwise
  */
 export async function findById(projectId: string): Promise<Project | null> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
   });
+
+  // Return null if project is soft-deleted
+  if (project && project.deletedAt) {
+    return null;
+  }
 
   return project;
 }
@@ -135,6 +148,7 @@ export async function verifyOwnership(
  * Update a project
  * @param projectId - ID of the project to update
  * @param userId - ID of the user making the update
+ * @param userEmail - Email of the user making the update
  * @param data - Partial project data to update
  * @returns Updated project
  * @throws NotFoundError if project doesn't exist
@@ -144,6 +158,7 @@ export async function verifyOwnership(
 export async function update(
   projectId: string,
   userId: string,
+  userEmail: string,
   data: Partial<Pick<Project, 'domain' | 'name'>>
 ): Promise<Project> {
   // Verify project exists
@@ -165,24 +180,29 @@ export async function update(
   // Update project
   const updatedProject = await prisma.project.update({
     where: { id: projectId },
-    data,
+    data: {
+      ...data,
+      updatedByEmail: userEmail,
+    },
   });
 
   return updatedProject;
 }
 
 /**
- * Delete a project and all related data (cascade delete)
+ * Soft delete a project (sets deletedAt timestamp, deletedBy user ID, and deletedByEmail)
  * @param projectId - ID of the project to delete
  * @param userId - ID of the user making the deletion
- * @throws NotFoundError if project doesn't exist
+ * @param userEmail - Email of the user making the deletion
+ * @throws NotFoundError if project doesn't exist or is already deleted
  * @throws AuthorizationError if user doesn't own the project
  */
 export async function deleteProject(
   projectId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<void> {
-  // Verify project exists
+  // Verify project exists and is not already deleted
   const project = await findById(projectId);
   if (!project) {
     throw new NotFoundError('Project');
@@ -193,8 +213,12 @@ export async function deleteProject(
     throw new AuthorizationError('You do not have permission to delete this project');
   }
 
-  // Delete project (cascade delete will handle related records)
-  await prisma.project.delete({
+  // Soft delete: set deletedAt timestamp and deletedByEmail
+  await prisma.project.update({
     where: { id: projectId },
+    data: {
+      deletedAt: new Date(),
+      deletedByEmail: userEmail,
+    },
   });
 }

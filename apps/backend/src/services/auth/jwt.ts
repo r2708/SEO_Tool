@@ -3,6 +3,7 @@ import { config } from '../../config/env';
 
 export interface TokenPayload {
   userId: string;
+  email: string;
   role: 'Free' | 'Pro' | 'Admin';
   iat: number;
   exp: number;
@@ -11,12 +12,14 @@ export interface TokenPayload {
 /**
  * Generate a JWT token for a user
  * @param userId - User ID to include in token
+ * @param email - User email to include in token
  * @param role - User role to include in token
  * @returns Signed JWT token with 24h expiration
  */
-export function generateToken(userId: string, role: 'Free' | 'Pro' | 'Admin'): string {
+export function generateToken(userId: string, email: string, role: 'Free' | 'Pro' | 'Admin'): string {
   const payload = {
     userId,
+    email,
     role,
   };
 

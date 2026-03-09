@@ -1,37 +1,54 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import type { Project } from '@seo-saas/shared-types';
 
-export default function NewProjectPage() {
+export default function EditProjectPage() {
   const router = useRouter();
+  const params = useParams();
+  const projectId = params.id as string;
+
   const [formData, setFormData] = useState({
     domain: '',
     name: '',
   });
   const [errors, setErrors] = useState<{ domain?: string; name?: string }>({});
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  useEffect(() => {
+    loadProject();
+  }, [projectId]);
+
+  const loadProject = async () => {
+    try {
+      const project = await apiClient.get<Project>(`/api/projects/${projectId}`);
+      setFormData({
+        domain: project.domain,
+        name: project.name,
+      });
+    } catch (err: any) {
+      setApiError(err.message || 'Failed to load project');
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
   const validateDomain = (domain: string): boolean => {
-    // Remove protocol if user accidentally added it
     let cleanDomain = domain.toLowerCase().trim();
     cleanDomain = cleanDomain.replace(/^https?:\/\//, '');
     cleanDomain = cleanDomain.replace(/^www\./, '');
-    cleanDomain = cleanDomain.replace(/\/$/, ''); // Remove trailing slash
+    cleanDomain = cleanDomain.replace(/\/$/, '');
     
-    // Domain must have at least one dot and valid TLD
-    // Format: subdomain.domain.tld or domain.tld
     const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
     
-    // Check if domain has at least one dot
     if (!cleanDomain.includes('.')) {
       return false;
     }
     
-    // Check if TLD (last part after dot) is at least 2 characters
     const parts = cleanDomain.split('.');
     const tld = parts[parts.length - 1];
     if (tld.length < 2) {
@@ -44,7 +61,6 @@ export default function NewProjectPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error for this field
     setErrors((prev) => ({ ...prev, [name]: undefined }));
     setApiError(null);
   };
@@ -52,7 +68,6 @@ export default function NewProjectPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form
     const newErrors: { domain?: string; name?: string } = {};
 
     if (!formData.domain.trim()) {
@@ -74,29 +89,36 @@ export default function NewProjectPage() {
       setLoading(true);
       setApiError(null);
 
-      const project = await apiClient.post<Project>('/api/projects', {
+      await apiClient.put(`/api/projects/${projectId}`, {
         domain: formData.domain.trim(),
         name: formData.name.trim(),
       });
 
-      // Redirect to project detail page
-      router.push(`/dashboard/projects/${project.id}`);
+      router.push(`/dashboard/projects/${projectId}`);
     } catch (err: any) {
-      setApiError(err.message || 'Failed to create project');
+      setApiError(err.message || 'Failed to update project');
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    router.push('/dashboard/projects');
+    router.push(`/dashboard/projects/${projectId}`);
   };
+
+  if (fetchLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Create New Project</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Edit Project</h1>
         <p className="text-gray-600 mt-1">
-          Add a new website to track its SEO performance
+          Update your project details
         </p>
       </div>
 
@@ -176,10 +198,10 @@ export default function NewProjectPage() {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating...
+                  Updating...
                 </>
               ) : (
-                'Create Project'
+                'Update Project'
               )}
             </button>
           </div>
