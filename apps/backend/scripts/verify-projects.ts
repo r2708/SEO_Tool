@@ -26,7 +26,7 @@ async function verifyProjects() {
       console.log(`Owner Email: ${p.ownerEmail}`);
       console.log(`Created By: ${p.createdByEmail}`);
       console.log(`Created At: ${p.createdAt.toISOString()}`);
-      console.log(`Updated At: ${p.updatedAt.toISOString()}`);
+      console.log(`Updated At: ${p.updatedAt?.toISOString() || 'null'}`);
       console.log(`Updated By: ${p.updatedByEmail || 'null'}`);
       console.log(`Deleted At: ${p.deletedAt?.toISOString() || 'null'}`);
       console.log(`Deleted By: ${p.deletedByEmail || 'null'}`);

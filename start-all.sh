@@ -12,6 +12,19 @@ echo -e "${BLUE}  SEO SaaS Platform - Starting All${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
+# First, ensure ports are completely free
+echo -e "${YELLOW}Cleaning up ports 3000 and 3001...${NC}"
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+sleep 2
+echo -e "${GREEN}✓ Ports cleaned${NC}"
+
+# Clear Next.js cache to prevent stale builds
+echo -e "${YELLOW}Clearing Next.js cache...${NC}"
+rm -rf apps/frontend/.next 2>/dev/null || true
+echo -e "${GREEN}✓ Cache cleared${NC}"
+echo ""
+
 # Check if Redis is running
 echo -e "${YELLOW}Checking Redis...${NC}"
 if redis-cli ping > /dev/null 2>&1; then
@@ -46,9 +59,20 @@ BACKEND_PID=$!
 echo -e "${GREEN}✓ Backend started (PID: $BACKEND_PID)${NC}"
 cd ../..
 
-# Wait for backend to be ready
+# Wait for backend to be ready with health check
 echo -e "${YELLOW}Waiting for backend to be ready...${NC}"
-sleep 5
+for i in {1..30}; do
+    if curl -s http://localhost:3001/api/health > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Backend is ready!${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}✗ Backend failed to start. Check backend.log${NC}"
+        tail -20 backend.log
+        exit 1
+    fi
+    sleep 1
+done
 
 echo ""
 echo -e "${BLUE}========================================${NC}"
@@ -62,9 +86,20 @@ FRONTEND_PID=$!
 echo -e "${GREEN}✓ Frontend started (PID: $FRONTEND_PID)${NC}"
 cd ../..
 
-# Wait for frontend to be ready
+# Wait for frontend to be ready with health check
 echo -e "${YELLOW}Waiting for frontend to be ready...${NC}"
-sleep 5
+for i in {1..30}; do
+    if curl -s http://localhost:3000 > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Frontend is ready!${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}✗ Frontend failed to start. Check frontend.log${NC}"
+        tail -20 frontend.log
+        exit 1
+    fi
+    sleep 1
+done
 
 echo ""
 echo -e "${BLUE}========================================${NC}"

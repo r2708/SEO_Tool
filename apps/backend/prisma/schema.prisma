@@ -40,7 +40,7 @@ model Project {
   ownerEmail      String?   // Email of project owner
   createdByEmail  String?   // Email of user who created
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime? // Timestamp of last update (null if never updated)
   updatedByEmail  String?   // Email of user who last updated
   deletedAt       DateTime? // Soft delete timestamp
   deletedByEmail  String?   // Email of user who deleted

@@ -5,6 +5,7 @@ import * as projectService from '../services/project/projectService';
 import { AuthorizationError } from '../errors/AuthorizationError';
 import { NotFoundError } from '../errors/NotFoundError';
 import { PrismaClient } from '@prisma/client';
+import { formatToIST } from '../utils/dateFormatter';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -31,10 +32,10 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res, next) => {
       domain: project.domain,
       name: project.name,
       createdByEmail: project.createdByEmail,
-      createdAt: project.createdAt.toISOString(),
-      updatedAt: project.updatedAt.toISOString(),
+      createdAt: formatToIST(project.createdAt),
+      updatedAt: formatToIST(project.updatedAt),
       updatedByEmail: project.updatedByEmail,
-      deletedAt: project.deletedAt?.toISOString() || null,
+      deletedAt: formatToIST(project.deletedAt),
       deletedByEmail: project.deletedByEmail,
     }, 201);
   } catch (error) {
@@ -87,7 +88,7 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res, next) => {
           keywordCount: project.keywordCount,
           competitorCount: project.competitorCount,
           lastAuditScore: lastScore?.score,
-          createdAt: project.createdAt.toISOString(),
+          createdAt: formatToIST(project.createdAt),
         };
       })
     );
@@ -159,7 +160,7 @@ router.get('/:id', authenticate, async (req: AuthenticatedRequest, res, next) =>
       keywordCount: counts?._count.keywords || 0,
       competitorCount: counts?._count.competitors || 0,
       lastAuditScore: lastScore?.score,
-      createdAt: project.createdAt.toISOString(),
+      createdAt: formatToIST(project.createdAt),
     });
   } catch (error) {
     next(error);
@@ -186,7 +187,8 @@ router.put('/:id', authenticate, async (req: AuthenticatedRequest, res, next) =>
       id: updatedProject.id,
       domain: updatedProject.domain,
       name: updatedProject.name,
-      updatedAt: updatedProject.updatedAt.toISOString(),
+      updatedAt: formatToIST(updatedProject.updatedAt),
+      updatedByEmail: updatedProject.updatedByEmail,
     });
   } catch (error) {
     next(error);

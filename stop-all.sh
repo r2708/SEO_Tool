@@ -55,8 +55,25 @@ fi
 # Kill ALL node processes (nuclear option)
 echo ""
 echo -e "${YELLOW}Killing all remaining Node.js processes...${NC}"
-pkill -9 node 2>/dev/null
+pkill -9 node 2>/dev/null || true
+sleep 2
 echo -e "${GREEN}✓ All Node.js processes killed${NC}"
+
+# Double check ports are free
+echo ""
+echo -e "${YELLOW}Verifying ports are free...${NC}"
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+sleep 1
+
+REMAINING_3000=$(lsof -ti:3000 2>/dev/null)
+REMAINING_3001=$(lsof -ti:3001 2>/dev/null)
+
+if [ -z "$REMAINING_3000" ] && [ -z "$REMAINING_3001" ]; then
+    echo -e "${GREEN}✓ Ports 3000 and 3001 are free${NC}"
+else
+    echo -e "${RED}⚠ Warning: Some processes still running on ports${NC}"
+fi
 
 # Clean up log files
 if [ -f backend.log ]; then

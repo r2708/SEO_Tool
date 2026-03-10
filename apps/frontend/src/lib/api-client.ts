@@ -11,6 +11,7 @@ class APIClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      timeout: 10000, // 10 second timeout
     });
 
     // Add request interceptor to include auth token

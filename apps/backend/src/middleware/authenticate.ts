@@ -8,6 +8,7 @@ import { AuthenticationError } from '../errors';
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
+    email: string;
     role: 'Free' | 'Pro' | 'Admin';
   };
 }
@@ -16,7 +17,7 @@ export interface AuthenticatedRequest extends Request {
  * JWT Authentication Middleware
  * 
  * Extracts and validates JWT token from Authorization header.
- * Attaches user data (id, role) to request object.
+ * Attaches user data (id, email, role) to request object.
  * Returns 401 for invalid/expired tokens.
  * 
  * Validates: Requirements 3.1, 3.2
@@ -49,6 +50,7 @@ export function authenticate(
     // Attach user data to request
     req.user = {
       id: payload.userId,
+      email: payload.email,
       role: payload.role,
     };
 

@@ -31,6 +31,16 @@ export function validateDomain(domain: string): boolean {
 }
 
 /**
+ * Get current time in IST
+ * @returns Date object with IST time
+ */
+function getISTTime(): Date {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes
+  return new Date(now.getTime() + istOffset);
+}
+
+/**
  * Create a new project for a user
  * @param userId - ID of the user creating the project
  * @param userEmail - Email of the user creating the project
@@ -58,6 +68,7 @@ export async function create(
       domain,
       name: name || domain, // Default name to domain if not provided
       createdByEmail: userEmail,
+      createdAt: getISTTime(),
       // updatedByEmail should be null on creation (only set when actually updated)
     },
   });
@@ -182,6 +193,7 @@ export async function update(
     where: { id: projectId },
     data: {
       ...data,
+      updatedAt: getISTTime(),
       updatedByEmail: userEmail,
     },
   });
@@ -217,7 +229,7 @@ export async function deleteProject(
   await prisma.project.update({
     where: { id: projectId },
     data: {
-      deletedAt: new Date(),
+      deletedAt: getISTTime(),
       deletedByEmail: userEmail,
     },
   });
