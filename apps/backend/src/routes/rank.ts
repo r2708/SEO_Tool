@@ -64,6 +64,33 @@ router.post('/track', authenticate, async (req: AuthenticatedRequest, res, next)
 });
 
 /**
+ * GET /api/rank/keywords/:projectId
+ * Get all keywords for a project that have rankings or are available for tracking
+ * Requires authentication and project ownership
+ */
+router.get('/keywords/:projectId', authenticate, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user!.id;
+
+    // Verify project ownership
+    const isOwner = await projectService.verifyOwnership(projectId, userId);
+    if (!isOwner) {
+      throw new AuthorizationError('You do not have permission to access this project');
+    }
+
+    // Get keywords from the keyword service
+    const { keywords } = await rankTrackerService.getProjectKeywords(projectId);
+
+    (res as FormattedResponse).success({
+      keywords,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/rank/history/:projectId
  * Get ranking history for a project with optional filters and pagination
  * Requires authentication and project ownership

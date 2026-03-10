@@ -10,6 +10,7 @@ import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
 import keywordRoutes from './routes/keywords';
 import rankRoutes from './routes/rank';
+import rankAutoRoutes from './routes/rankAuto';
 import auditRoutes from './routes/audit';
 import competitorRoutes from './routes/competitors';
 import contentRoutes from './routes/content';
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes); // Auth routes (no authentication required)
 app.use('/api/projects', authenticate, createRateLimiter(cache), projectRoutes);
 app.use('/api/keywords', authenticate, createRateLimiter(cache), keywordRoutes);
 app.use('/api/rank', authenticate, createRateLimiter(cache), rankRoutes);
+app.use('/api/rank', authenticate, createRateLimiter(cache), rankAutoRoutes);
 app.use('/api/audit', authenticate, createRateLimiter(cache), auditRoutes);
 app.use('/api/competitors', authenticate, createRateLimiter(cache), competitorRoutes);
 app.use('/api/content', authenticate, createRateLimiter(cache), contentRoutes);

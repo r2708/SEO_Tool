@@ -14,20 +14,49 @@ export interface ProjectWithCounts extends Project {
 }
 
 /**
- * Validate domain format (no protocol, valid domain structure)
- * @param domain - Domain to validate (e.g., "example.com")
- * @returns true if domain is valid, false otherwise
+ * Clean and validate domain format
+ * @param domain - Domain to validate and clean (e.g., "https://example.com" or "example.com")
+ * @returns Cleaned domain if valid, null if invalid
  */
-export function validateDomain(domain: string): boolean {
-  // Domain should not contain protocol
-  if (domain.includes('://')) {
-    return false;
+export function cleanAndValidateDomain(domain: string): string | null {
+  if (!domain || typeof domain !== 'string') {
+    return null;
   }
+
+  // Remove protocol if present
+  let cleanedDomain = domain.trim();
+  if (cleanedDomain.includes('://')) {
+    try {
+      const url = new URL(cleanedDomain);
+      cleanedDomain = url.hostname;
+    } catch {
+      // Fallback: split on :// and take the second part
+      cleanedDomain = cleanedDomain.split('://')[1];
+    }
+  }
+
+  // Remove www prefix if present (optional)
+  if (cleanedDomain.startsWith('www.')) {
+    cleanedDomain = cleanedDomain.substring(4);
+  }
+
+  // Remove path if present
+  cleanedDomain = cleanedDomain.split('/')[0];
 
   // Basic domain format validation
   // Must have at least one dot and valid characters
   const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?(\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?)*\.[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain);
+  
+  return domainRegex.test(cleanedDomain) ? cleanedDomain : null;
+}
+
+/**
+ * Validate domain format (legacy function for backward compatibility)
+ * @param domain - Domain to validate (e.g., "example.com")
+ * @returns true if domain is valid, false otherwise
+ */
+export function validateDomain(domain: string): boolean {
+  return cleanAndValidateDomain(domain) !== null;
 }
 
 /**
@@ -55,9 +84,10 @@ export async function create(
   domain: string,
   name?: string
 ): Promise<Project> {
-  // Validate domain format
-  if (!validateDomain(domain)) {
-    throw new ValidationError('Invalid domain format. Domain should not include protocol (e.g., use "example.com" not "https://example.com")');
+  // Clean and validate domain format
+  const cleanedDomain = cleanAndValidateDomain(domain);
+  if (!cleanedDomain) {
+    throw new ValidationError('Invalid domain format. Please provide a valid domain (e.g., "example.com" or "https://example.com")');
   }
 
   // Create project with creator information
@@ -65,8 +95,8 @@ export async function create(
     data: {
       userId,
       ownerEmail: userEmail,
-      domain,
-      name: name || domain, // Default name to domain if not provided
+      domain: cleanedDomain,
+      name: name || cleanedDomain, // Default name to cleaned domain if not provided
       createdByEmail: userEmail,
       createdAt: getISTTime(),
       // updatedByEmail should be null on creation (only set when actually updated)
@@ -183,16 +213,21 @@ export async function update(
     throw new AuthorizationError('You do not have permission to update this project');
   }
 
-  // Validate domain if it's being updated
-  if (data.domain && !validateDomain(data.domain)) {
-    throw new ValidationError('Invalid domain format. Domain should not include protocol (e.g., use "example.com" not "https://example.com")');
+  // Clean and validate domain if it's being updated
+  let updateData = { ...data };
+  if (data.domain) {
+    const cleanedDomain = cleanAndValidateDomain(data.domain);
+    if (!cleanedDomain) {
+      throw new ValidationError('Invalid domain format. Please provide a valid domain (e.g., "example.com" or "https://example.com")');
+    }
+    updateData.domain = cleanedDomain;
   }
 
   // Update project
   const updatedProject = await prisma.project.update({
     where: { id: projectId },
     data: {
-      ...data,
+      ...updateData,
       updatedAt: getISTTime(),
       updatedByEmail: userEmail,
     },

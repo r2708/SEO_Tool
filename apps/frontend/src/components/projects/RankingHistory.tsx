@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 import type { RankHistory } from '@seo-saas/shared-types';
 import Pagination from '@/components/shared/Pagination';
 import {
@@ -20,7 +21,9 @@ interface RankingHistoryProps {
 }
 
 export default function RankingHistory({ projectId }: RankingHistoryProps) {
+  const { user } = useAuth();
   const [rankings, setRankings] = useState<RankHistory[]>([]);
+  const [availableKeywords, setAvailableKeywords] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedKeyword, setSelectedKeyword] = useState<string>('');
@@ -32,10 +35,27 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(50);
+  const [autoTracking, setAutoTracking] = useState(false);
+  const [autoTrackError, setAutoTrackError] = useState<string | null>(null);
+  const [autoTrackSuccess, setAutoTrackSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    loadRankings();
-  }, [projectId, currentPage]);
+    // Only load data if user is authenticated
+    if (user) {
+      loadKeywords();
+      loadRankings();
+    }
+  }, [projectId, user]);
+
+  const loadKeywords = async () => {
+    try {
+      const response = await apiClient.get<{ keywords: string[] }>(`/api/rank/keywords/${projectId}`);
+      setAvailableKeywords(response.keywords || []);
+    } catch (err: any) {
+      console.error('Failed to load keywords:', err);
+      // Don't show error to user, just continue with empty keywords
+    }
+  };
 
   const loadRankings = async () => {
     try {
@@ -96,8 +116,50 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
     setTimeout(() => loadRankings(), 0);
   };
 
-  // Get all unique keywords for the dropdown
-  const allKeywords = rankings.map((r) => r.keyword);
+  const handleAutoTrack = async () => {
+    try {
+      setAutoTracking(true);
+      setAutoTrackError(null);
+      setAutoTrackSuccess(null);
+
+      const response = await apiClient.post('/api/rank/auto-track', {
+        projectId
+      }) as {
+        domain: string;
+        trackedKeywords: number;
+        summary: {
+          found: number;
+          notFound: number;
+          errors: number;
+        };
+        results: Array<{
+          keyword: string;
+          position: number | null;
+          error?: string;
+        }>;
+      };
+
+      setAutoTrackSuccess(
+        `Tracked ${response.trackedKeywords} keywords for ${response.domain}. ` +
+        `Found: ${response.summary.found}, Not found: ${response.summary.notFound}` +
+        (response.summary.errors > 0 ? `, Errors: ${response.summary.errors}` : '')
+      );
+
+      // Refresh rankings data
+      setTimeout(() => {
+        loadRankings();
+        loadKeywords();
+      }, 1000);
+
+    } catch (err: any) {
+      setAutoTrackError(err.message || 'Failed to auto-track keywords');
+    } finally {
+      setAutoTracking(false);
+    }
+  };
+
+  // Get all unique keywords for dropdown
+  const allKeywords = availableKeywords.length > 0 ? availableKeywords : rankings.map((r) => r.keyword);
 
   // Prepare chart data
   const getChartData = () => {
@@ -170,6 +232,44 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
 
   return (
     <div className="space-y-6">
+      {/* Auto-Track Section */}
+      <div className="bg-blue-50 rounded-lg p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-blue-900">Auto-Track Rankings</h3>
+            <p className="text-sm text-blue-700">
+              Check current rankings for all keywords using SERP API
+            </p>
+          </div>
+          <button
+            onClick={handleAutoTrack}
+            disabled={autoTracking}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center"
+          >
+            {autoTracking ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Tracking...
+              </>
+            ) : (
+              'Track All Keywords'
+            )}
+          </button>
+        </div>
+
+        {autoTrackSuccess && (
+          <div className="bg-green-100 border border-green-200 rounded-lg p-3">
+            <p className="text-sm text-green-800">{autoTrackSuccess}</p>
+          </div>
+        )}
+
+        {autoTrackError && (
+          <div className="bg-red-100 border border-red-200 rounded-lg p-3">
+            <p className="text-sm text-red-800">{autoTrackError}</p>
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -14,6 +14,7 @@ export interface RankRecord {
   keyword: string;
   position: number;
   date: string;  // YYYY-MM-DD
+  isUpdate: boolean; // Whether this was an update or create
 }
 
 /**

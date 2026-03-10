@@ -110,6 +110,27 @@ export class CachedRankTrackerService {
   }
 
   /**
+   * Get all keywords for a project (from keyword service)
+   * @param projectId - Project ID
+   * @returns Array of keywords with current rank if available
+   */
+  async getProjectKeywords(projectId: string): Promise<{ keywords: string[] }> {
+    try {
+      // Import keyword service to get project keywords
+      const { findByProject } = await import('../keyword/keywordService');
+      const { keywords } = await findByProject(projectId);
+      
+      // Extract just the keyword strings
+      const keywordList = keywords.map((k: any) => k.keyword);
+      
+      return { keywords: keywordList };
+    } catch (error) {
+      logger.error('Error getting project keywords:', { error: error instanceof Error ? error.message : String(error) });
+      return { keywords: [] };
+    }
+  }
+
+  /**
    * Generate cache key based on query parameters
    * @param projectId - Project ID
    * @param keyword - Optional keyword filter

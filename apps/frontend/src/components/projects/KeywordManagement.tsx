@@ -26,6 +26,8 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(50);
+  const [checkingKeyword, setCheckingKeyword] = useState<string | null>(null);
+  const [keywordResults, setKeywordResults] = useState<Record<string, { position: number | null; found: boolean; error?: string }>>({});
 
   useEffect(() => {
     loadKeywords();
@@ -110,6 +112,39 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
       setResearchError(err.message || 'Failed to research keywords');
     } finally {
       setResearching(false);
+    }
+  };
+
+  const handleCheckKeywordRanking = async (keyword: string) => {
+    try {
+      setCheckingKeyword(keyword);
+      
+      const response = await apiClient.post('/api/rank/check-keyword', {
+        projectId,
+        keyword
+      }) as { position: number | null; found: boolean; domain: string };
+      
+      setKeywordResults(prev => ({
+        ...prev,
+        [keyword]: {
+          position: response.position,
+          found: response.found
+        }
+      }));
+      
+      // Refresh rankings data
+      setTimeout(() => loadKeywords(), 1000);
+    } catch (err: any) {
+      setKeywordResults(prev => ({
+        ...prev,
+        [keyword]: {
+          position: null,
+          found: false,
+          error: err.message || 'Failed to check ranking'
+        }
+      }));
+    } finally {
+      setCheckingKeyword(null);
     }
   };
 
@@ -299,6 +334,9 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
                       <SortIcon field="currentRank" />
                     </div>
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -328,6 +366,44 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {keyword.currentRank !== undefined ? keyword.currentRank : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleCheckKeywordRanking(keyword.keyword)}
+                          disabled={checkingKeyword === keyword.keyword}
+                          className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                        >
+                          {checkingKeyword === keyword.keyword ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                              Checking...
+                            </>
+                          ) : (
+                            'Check SERP'
+                          )}
+                        </button>
+                        
+                        {keywordResults[keyword.keyword] && (
+                          <div className="flex items-center space-x-1">
+                            {keywordResults[keyword.keyword].found ? (
+                              <span className="text-green-600 text-xs font-medium">
+                                #{keywordResults[keyword.keyword].position}
+                              </span>
+                            ) : (
+                              <span className="text-red-600 text-xs">
+                                Not found
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {keywordResults[keyword.keyword]?.error && (
+                          <span className="text-red-600 text-xs" title={keywordResults[keyword.keyword].error}>
+                            Error
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
