@@ -122,38 +122,74 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
       setAutoTrackError(null);
       setAutoTrackSuccess(null);
 
+      // Start background tracking
       const response = await apiClient.post('/api/rank/auto-track', {
         projectId
       }) as {
-        domain: string;
-        trackedKeywords: number;
-        summary: {
-          found: number;
-          notFound: number;
-          errors: number;
-        };
-        results: Array<{
-          keyword: string;
-          position: number | null;
-          error?: string;
-        }>;
+        status: string;
+        message: string;
+        totalKeywords: number;
+        estimatedTime: string;
       };
 
+      // Show success message
       setAutoTrackSuccess(
-        `Tracked ${response.trackedKeywords} keywords for ${response.domain}. ` +
-        `Found: ${response.summary.found}, Not found: ${response.summary.notFound}` +
-        (response.summary.errors > 0 ? `, Errors: ${response.summary.errors}` : '')
+        `Tracking started for ${response.totalKeywords} keywords. ` +
+        `Estimated time: ${response.estimatedTime}. Results will appear shortly.`
       );
 
-      // Refresh rankings data
-      setTimeout(() => {
-        loadRankings();
-        loadKeywords();
-      }, 1000);
+      // Poll for completion
+      let pollCount = 0;
+      const maxPolls = 90; // 3 minutes max (90 * 2 seconds)
+      
+      const pollInterval = setInterval(async () => {
+        try {
+          pollCount++;
+          
+          const status = await apiClient.get(`/api/rank/tracking-status/${projectId}`) as {
+            totalKeywords: number;
+            trackedKeywords: number;
+            isComplete: boolean;
+            progress: number;
+          };
+
+          // Update success message with progress
+          setAutoTrackSuccess(
+            `Tracking in progress: ${status.trackedKeywords} / ${status.totalKeywords} keywords (${status.progress}%)`
+          );
+
+          if (status.isComplete || pollCount >= maxPolls) {
+            clearInterval(pollInterval);
+            setAutoTracking(false);
+            
+            if (status.isComplete) {
+              setAutoTrackSuccess(
+                `Successfully tracked ${status.totalKeywords} keywords! Refreshing data...`
+              );
+            } else {
+              setAutoTrackSuccess(
+                `Tracking completed for ${status.trackedKeywords} keywords. Some may still be processing.`
+              );
+            }
+
+            // Refresh rankings data
+            setTimeout(() => {
+              loadRankings();
+              loadKeywords();
+              
+              // Clear success message after data is refreshed
+              setTimeout(() => {
+                setAutoTrackSuccess(null);
+              }, 2000); // Clear after 2 seconds
+            }, 1000);
+          }
+        } catch (err) {
+          console.error('Error checking tracking status:', err);
+        }
+      }, 2000); // Poll every 2 seconds
 
     } catch (err: any) {
-      setAutoTrackError(err.message || 'Failed to auto-track keywords');
-    } finally {
+      setAutoTrackError(err.message || 'Failed to start tracking');
       setAutoTracking(false);
     }
   };
@@ -298,6 +334,7 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
             <input
               type="date"
               value={dateRange.startDate}
+              max={new Date().toISOString().split('T')[0]}
               onChange={(e) =>
                 setDateRange((prev) => ({ ...prev, startDate: e.target.value }))
               }
@@ -312,6 +349,7 @@ export default function RankingHistory({ projectId }: RankingHistoryProps) {
             <input
               type="date"
               value={dateRange.endDate}
+              max={new Date().toISOString().split('T')[0]}
               onChange={(e) =>
                 setDateRange((prev) => ({ ...prev, endDate: e.target.value }))
               }

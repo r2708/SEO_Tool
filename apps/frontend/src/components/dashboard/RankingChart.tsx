@@ -36,6 +36,9 @@ export default function RankingChart({
     start: startDate || '',
     end: endDate || '',
   });
+  const [tracking, setTracking] = useState(false);
+  const [trackingStatus, setTrackingStatus] = useState<any>(null);
+  const [trackingSuccess, setTrackingSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     loadRankingData();
@@ -60,6 +63,60 @@ export default function RankingChart({
       setError(err.message || 'Failed to load ranking data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAutoTrack = async () => {
+    try {
+      setTracking(true);
+      setError(null);
+      setTrackingSuccess(null);
+
+      // Start tracking
+      await apiClient.post(`/api/rank/auto-track`, { projectId });
+
+      // Poll for status
+      const pollInterval = setInterval(async () => {
+        try {
+          const status = await apiClient.get<{
+            totalKeywords: number;
+            trackedKeywords: number;
+            isComplete: boolean;
+            progress: number;
+          }>(`/api/rank/tracking-status/${projectId}`);
+          setTrackingStatus(status);
+
+          if (status.isComplete) {
+            clearInterval(pollInterval);
+            setTracking(false);
+            
+            // Show success message
+            setTrackingSuccess(`Successfully tracked ${status.totalKeywords} keywords!`);
+            
+            // Reload data
+            loadRankingData();
+            
+            // Clear success message and status after 3 seconds
+            setTimeout(() => {
+              setTrackingSuccess(null);
+              setTrackingStatus(null);
+            }, 3000);
+          }
+        } catch (err) {
+          console.error('Error checking status:', err);
+        }
+      }, 2000); // Check every 2 seconds
+
+      // Stop polling after 5 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setTracking(false);
+        setTrackingStatus(null);
+      }, 5 * 60 * 1000);
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to start tracking');
+      setTracking(false);
     }
   };
 
@@ -105,6 +162,51 @@ export default function RankingChart({
 
   return (
     <div className="space-y-4">
+      {/* Auto-Track Button */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Track Rankings</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Update rankings for all keywords using real-time SERP data
+            </p>
+          </div>
+          <button
+            onClick={handleAutoTrack}
+            disabled={tracking}
+            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+          >
+            {tracking ? 'Tracking...' : 'Track Now'}
+          </button>
+        </div>
+
+        {/* Progress Bar */}
+        {trackingStatus && !trackingSuccess && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+              <span>Progress: {trackingStatus.trackedKeywords} / {trackingStatus.totalKeywords} keywords</span>
+              <span>{trackingStatus.progress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${trackingStatus.progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {trackingSuccess && (
+          <div className="mt-4 bg-green-100 border border-green-200 rounded-lg p-3">
+            <p className="text-sm text-green-800 flex items-center">
+              <span className="mr-2">✅</span>
+              {trackingSuccess}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -127,6 +229,7 @@ export default function RankingChart({
             <input
               type="date"
               value={dateRange.start}
+              max={new Date().toISOString().split('T')[0]}
               onChange={(e) => handleDateChange('start', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -138,6 +241,7 @@ export default function RankingChart({
             <input
               type="date"
               value={dateRange.end}
+              max={new Date().toISOString().split('T')[0]}
               onChange={(e) => handleDateChange('end', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -156,8 +260,12 @@ export default function RankingChart({
       {/* Chart */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {data.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No ranking data available for the selected filters
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📊</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Ranking Data Yet</h3>
+            <p className="text-gray-600 mb-4">
+              Click "Track Now" to start tracking your keyword rankings
+            </p>
           </div>
         ) : (
           <>
