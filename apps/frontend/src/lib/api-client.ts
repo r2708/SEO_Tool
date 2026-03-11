@@ -114,3 +114,23 @@ class APIClient {
 }
 
 export const apiClient = new APIClient();
+// Competitor API functions
+export const competitorAPI = {
+  // Analyze a competitor domain
+  analyzeCompetitor: async (projectId: string, competitorDomain: string) => {
+    return apiClient.post('/api/competitors/analyze', {
+      projectId,
+      competitorDomain,
+    });
+  },
+
+  // Get all competitors for a project
+  getCompetitors: async (projectId: string, page = 1, pageSize = 50) => {
+    return apiClient.get(`/api/competitors/${projectId}?page=${page}&pageSize=${pageSize}`);
+  },
+
+  // Get competitor keywords with rankings
+  getCompetitorKeywords: async (competitorId: string) => {
+    return apiClient.get(`/api/competitors/${competitorId}/keywords`);
+  },
+};

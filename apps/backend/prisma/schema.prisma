@@ -107,9 +107,14 @@ model Competitor {
 
 // CompetitorKeyword model - stores keywords associated with competitors
 model CompetitorKeyword {
-  id           String @id @default(uuid())
+  id           String   @id @default(uuid())
   competitorId String
   keyword      String
+  position     Int?     // Ranking position (1-100, null if not ranked)
+  searchVolume Int?     // Search volume from SERP API
+  difficulty   Decimal? @db.Decimal(5, 2) // Keyword difficulty (0.00 to 100.00)
+  cpc          Decimal? @db.Decimal(10, 2) // Cost per click in USD
+  lastUpdated  DateTime @default(now())
   
   competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
   

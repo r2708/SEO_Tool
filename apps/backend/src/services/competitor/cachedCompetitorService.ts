@@ -5,6 +5,7 @@ import { logger } from '../../utils/logger';
 import {
   CompetitorWithCount,
   CompetitorAnalysis,
+  CompetitorKeywordWithRanking,
 } from './competitorService';
 
 /**
@@ -22,43 +23,33 @@ export class CachedCompetitorService {
   constructor(private cache: CacheService) {}
 
   /**
-   * Analyze competitor with caching
-   * Performs analysis and caches results for 12 hours
-   * Invalidates existing cache to ensure fresh analysis
+   * Analyze competitor with background processing
+   * Returns immediately with basic data, processes ranking data in background
    * @param projectId - Project ID
    * @param competitorDomain - Competitor domain to analyze
-   * @returns Competitor analysis with overlap data
+   * @returns Competitor analysis with basic data
    */
-  async analyze(
+  async analyzeBackground(
     projectId: string,
     competitorDomain: string
   ): Promise<CompetitorAnalysis> {
     const cacheKey = CacheKeys.competitor(projectId, competitorDomain);
 
-    // Invalidate existing cache to ensure fresh analysis
+    // Invalidate existing cache
     try {
       await this.cache.del(cacheKey);
-      logger.debug(`Invalidated cache before analysis for: ${projectId}:${competitorDomain}`);
     } catch (error) {
-      logger.warn(`Cache invalidation failed for key ${cacheKey}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // Continue to analysis
+      logger.warn(`Cache invalidation failed for key ${cacheKey}`, { error });
     }
 
-    // Perform analysis
-    logger.debug(`Analyzing competitor: ${projectId}:${competitorDomain}`);
-    const analysis = await competitorService.analyze(projectId, competitorDomain);
+    // Perform background analysis
+    const analysis = await competitorService.analyzeBackground(projectId, competitorDomain);
 
-    // Try to cache the result (don't fail if caching fails)
+    // Cache the basic result
     try {
       await this.cache.set(cacheKey, analysis, CacheTTL.COMPETITOR);
-      logger.debug(`Cached competitor analysis for: ${projectId}:${competitorDomain}`);
     } catch (error) {
-      logger.warn(`Cache storage failed for key ${cacheKey}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // Continue - data is still returned from analysis
+      logger.warn(`Cache storage failed for key ${cacheKey}`, { error });
     }
 
     return analysis;
@@ -80,12 +71,12 @@ export class CachedCompetitorService {
   }
 
   /**
-   * Get competitor keywords (no caching)
+   * Get competitor keywords with ranking data (no caching)
    * @param competitorId - Competitor ID
-   * @returns Array of keywords
+   * @returns Array of keywords with ranking information
    */
-  async getCompetitorKeywords(competitorId: string): Promise<string[]> {
-    return competitorService.getCompetitorKeywords(competitorId);
+  async getCompetitorKeywordsWithRanking(competitorId: string): Promise<CompetitorKeywordWithRanking[]> {
+    return competitorService.getCompetitorKeywordsWithRanking(competitorId);
   }
 
   /**

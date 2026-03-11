@@ -6,9 +6,12 @@ import { RedisCache } from '../services/cache/RedisCache';
 import { config } from '../config/env';
 import { ValidationError } from '../errors/ValidationError';
 import { AuthorizationError } from '../errors/AuthorizationError';
+import { NotFoundError } from '../errors/NotFoundError';
 import * as projectService from '../services/project/projectService';
+import { PrismaClient } from '@prisma/client';
 
 const router = Router();
+const prisma = new PrismaClient();
 
 // Initialize cache and cached competitor service
 const cache = new RedisCache(config.REDIS_URL);
@@ -45,13 +48,20 @@ router.post('/analyze', authenticate, async (req: AuthenticatedRequest, res, nex
       throw new AuthorizationError('You do not have permission to access this project');
     }
 
-    // Analyze competitor (uses caching - 12 hour TTL)
-    const analysis = await competitorService.analyze(projectId, competitorDomain);
+    // Analyze competitor (uses background processing for ranking data)
+    const analysis = await competitorService.analyzeBackground(projectId, competitorDomain);
 
-    // Format response
+    // Format response with ranking data
     const response = {
       competitor: analysis.competitor,
-      keywords: analysis.keywords,
+      keywords: analysis.keywords.map(k => ({
+        keyword: k.keyword,
+        position: k.position,
+        searchVolume: k.searchVolume,
+        difficulty: k.difficulty ? parseFloat(k.difficulty.toString()) : null,
+        cpc: k.cpc ? parseFloat(k.cpc.toString()) : null,
+        lastUpdated: k.lastUpdated.toISOString(),
+      })),
       overlap: {
         shared: analysis.overlap.shared,
         competitorOnly: analysis.overlap.competitorOnly,
@@ -121,3 +131,40 @@ router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, n
 });
 
 export default router;
+/**
+ * GET /api/competitors/:competitorId/keywords
+ * Get competitor keywords with ranking data
+ * Requires authentication and project ownership
+ */
+router.get('/:competitorId/keywords', authenticate, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { competitorId } = req.params;
+    const userId = req.user!.id;
+
+    // Get competitor to verify project ownership
+    const competitor = await prisma.competitor.findUnique({
+      where: { id: competitorId },
+      include: { project: true },
+    });
+
+    if (!competitor) {
+      throw new NotFoundError('Competitor');
+    }
+
+    // Verify project ownership
+    const isOwner = await projectService.verifyOwnership(competitor.projectId, userId);
+    if (!isOwner) {
+      throw new AuthorizationError('You do not have permission to access this competitor');
+    }
+
+    // Get keywords with ranking data
+    const keywords = await competitorService.getCompetitorKeywordsWithRanking(competitorId);
+
+    (res as FormattedResponse).success({
+      keywords,
+      total: keywords.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+});

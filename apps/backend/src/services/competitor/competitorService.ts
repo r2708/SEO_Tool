@@ -15,11 +15,23 @@ export interface CompetitorWithCount extends Competitor {
 }
 
 /**
- * Competitor analysis result
+ * Competitor keyword with ranking data
+ */
+export interface CompetitorKeywordWithRanking {
+  keyword: string;
+  position: number | null;
+  searchVolume: number | null;
+  difficulty: number | null;
+  cpc: number | null;
+  lastUpdated: Date;
+}
+
+/**
+ * Competitor analysis result with ranking data
  */
 export interface CompetitorAnalysis {
   competitor: string;
-  keywords: string[];
+  keywords: CompetitorKeywordWithRanking[];
   overlap: KeywordOverlap;
   lastAnalyzed: Date;
 }
@@ -100,7 +112,167 @@ export async function extractKeywords(domain: string): Promise<string[]> {
 }
 
 /**
- * Analyze a competitor domain and store results
+ * Analyze a competitor domain and store results (background processing)
+ * @param projectId - Project ID to associate competitor with
+ * @param competitorDomain - Competitor domain to analyze
+ * @returns Initial analysis with basic data, ranking data processed in background
+ */
+export async function analyzeBackground(
+  projectId: string,
+  competitorDomain: string
+): Promise<CompetitorAnalysis> {
+  // Verify project exists
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project) {
+    throw new NotFoundError('Project');
+  }
+
+  // Validate domain
+  if (!competitorDomain || competitorDomain.trim().length === 0) {
+    throw new ValidationError('Competitor domain is required');
+  }
+
+  // Extract keywords from competitor
+  const competitorKeywords = await extractKeywords(competitorDomain);
+
+  // Store or update competitor
+  const competitor = await prisma.competitor.upsert({
+    where: {
+      projectId_domain: {
+        projectId,
+        domain: competitorDomain,
+      },
+    },
+    update: {
+      lastAnalyzed: new Date(),
+    },
+    create: {
+      projectId,
+      domain: competitorDomain,
+      lastAnalyzed: new Date(),
+    },
+  });
+
+  // Delete existing competitor keywords
+  await prisma.competitorKeyword.deleteMany({
+    where: { competitorId: competitor.id },
+  });
+
+  // Store keywords immediately without ranking data
+  if (competitorKeywords.length > 0) {
+    await prisma.competitorKeyword.createMany({
+      data: competitorKeywords.map(keyword => ({
+        competitorId: competitor.id,
+        keyword,
+        position: null,
+        searchVolume: null,
+        difficulty: null,
+        cpc: null,
+        lastUpdated: new Date(),
+      })),
+    });
+  }
+
+  // Start background ranking analysis (don't await)
+  processRankingDataInBackground(competitor.id, competitorKeywords, competitorDomain)
+    .catch(error => {
+      logger.error(`Background ranking analysis failed for competitor ${competitorDomain}:`, error);
+    });
+
+  // Get user's project keywords for overlap calculation
+  const userKeywords = await prisma.keyword.findMany({
+    where: { projectId },
+    select: { keyword: true },
+  });
+
+  const userKeywordList = userKeywords.map(k => k.keyword.toLowerCase());
+
+  // Calculate overlap using just keyword strings
+  const overlap = calculateOverlap(userKeywordList, competitorKeywords);
+
+  logger.info(`Analyzed competitor ${competitorDomain} for project ${projectId} (ranking data processing in background)`);
+
+  // Return basic analysis with empty ranking data
+  const basicKeywords: CompetitorKeywordWithRanking[] = competitorKeywords.map(keyword => ({
+    keyword,
+    position: null,
+    searchVolume: null,
+    difficulty: null,
+    cpc: null,
+    lastUpdated: new Date(),
+  }));
+
+  return {
+    competitor: competitorDomain,
+    keywords: basicKeywords,
+    overlap,
+    lastAnalyzed: competitor.lastAnalyzed,
+  };
+}
+
+/**
+ * Process ranking data in background
+ */
+async function processRankingDataInBackground(
+  competitorId: string,
+  keywords: string[],
+  competitorDomain: string
+): Promise<void> {
+  logger.info(`Starting background ranking analysis for ${keywords.length} keywords`);
+
+  // Limit to top 15 keywords for performance
+  const limitedKeywords = keywords.slice(0, 15);
+  
+  // Import services
+  const { getSerpApiRank } = await import('../rank/serpApiRankTracker');
+  const keywordService = await import('../keyword/keywordService');
+
+  for (let i = 0; i < limitedKeywords.length; i++) {
+    const keyword = limitedKeywords[i];
+    
+    try {
+      logger.info(`Background processing ${i + 1}/${limitedKeywords.length}: "${keyword}"`);
+      
+      // Get keyword metrics and ranking
+      const [metrics, position] = await Promise.all([
+        keywordService.getKeywordMetrics(keyword),
+        getSerpApiRank(keyword, competitorDomain)
+      ]);
+      
+      // Update the keyword record
+      await prisma.competitorKeyword.updateMany({
+        where: {
+          competitorId,
+          keyword,
+        },
+        data: {
+          position,
+          searchVolume: metrics.searchVolume,
+          difficulty: metrics.difficulty,
+          cpc: metrics.cpc,
+          lastUpdated: new Date(),
+        },
+      });
+      
+      logger.info(`✓ Background updated "${keyword}": position=${position || 'Not ranked'}`);
+    } catch (error) {
+      logger.warn(`✗ Background failed for "${keyword}":`, { error: error instanceof Error ? error.message : String(error) });
+    }
+    
+    // Delay between requests
+    if (i < limitedKeywords.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  
+  logger.info(`Background ranking analysis completed for competitor ${competitorDomain}`);
+}
+
+/**
+ * Analyze a competitor domain and store results (original method with full processing)
  * @param projectId - Project ID to associate competitor with
  * @param competitorDomain - Competitor domain to analyze
  * @returns Competitor analysis with overlap data
@@ -149,14 +321,82 @@ export async function analyze(
     where: { competitorId: competitor.id },
   });
 
-  // Store competitor keywords
+  // Store competitor keywords with ranking data
   if (competitorKeywords.length > 0) {
-    await prisma.competitorKeyword.createMany({
-      data: competitorKeywords.map(keyword => ({
+    // Limit keywords to avoid timeout - take top 20 most relevant keywords
+    const limitedKeywords = competitorKeywords.slice(0, 20);
+    logger.info(`Processing ${limitedKeywords.length} keywords (limited from ${competitorKeywords.length} for performance)`);
+
+    // Import ranking services
+    const { getSerpApiRank } = await import('../rank/serpApiRankTracker');
+    const keywordService = await import('../keyword/keywordService');
+
+    const keywordData = [];
+    
+    // Process keywords one by one to avoid overwhelming SERP API
+    for (let i = 0; i < limitedKeywords.length; i++) {
+      const keyword = limitedKeywords[i];
+      
+      try {
+        logger.info(`Processing keyword ${i + 1}/${limitedKeywords.length}: "${keyword}"`);
+        
+        // Get keyword metrics (search volume, difficulty, CPC)
+        const metrics = await keywordService.getKeywordMetrics(keyword);
+        
+        // Get competitor ranking for this keyword
+        const position = await getSerpApiRank(keyword, competitorDomain);
+        
+        keywordData.push({
+          competitorId: competitor.id,
+          keyword,
+          position,
+          searchVolume: metrics.searchVolume,
+          difficulty: metrics.difficulty,
+          cpc: metrics.cpc,
+          lastUpdated: new Date(),
+        });
+        
+        logger.info(`✓ Processed "${keyword}": position=${position || 'Not ranked'}, volume=${metrics.searchVolume}`);
+      } catch (error) {
+        logger.warn(`✗ Failed to get data for keyword "${keyword}":`, { error: error instanceof Error ? error.message : String(error) });
+        // Store keyword without ranking data
+        keywordData.push({
+          competitorId: competitor.id,
+          keyword,
+          position: null,
+          searchVolume: null,
+          difficulty: null,
+          cpc: null,
+          lastUpdated: new Date(),
+        });
+      }
+      
+      // Add delay between each keyword to respect API limits
+      if (i < limitedKeywords.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      }
+    }
+
+    // Store remaining keywords without ranking data (for overlap calculation)
+    const remainingKeywords = competitorKeywords.slice(20);
+    for (const keyword of remainingKeywords) {
+      keywordData.push({
         competitorId: competitor.id,
         keyword,
-      })),
+        position: null,
+        searchVolume: null,
+        difficulty: null,
+        cpc: null,
+        lastUpdated: new Date(),
+      });
+    }
+
+    // Store all keyword data
+    await prisma.competitorKeyword.createMany({
+      data: keywordData,
     });
+    
+    logger.info(`Stored ${keywordData.length} keywords (${limitedKeywords.length} with ranking data) for competitor ${competitorDomain}`);
   }
 
   // Get user's project keywords
@@ -167,14 +407,38 @@ export async function analyze(
 
   const userKeywordList = userKeywords.map(k => k.keyword.toLowerCase());
 
-  // Calculate overlap
-  const overlap = calculateOverlap(userKeywordList, competitorKeywords);
+  // Get competitor keywords with ranking data
+  const competitorKeywordsWithRanking = await prisma.competitorKeyword.findMany({
+    where: { competitorId: competitor.id },
+    select: {
+      keyword: true,
+      position: true,
+      searchVolume: true,
+      difficulty: true,
+      cpc: true,
+      lastUpdated: true,
+    },
+  });
+
+  // Convert Decimal types to numbers for the interface
+  const formattedKeywords: CompetitorKeywordWithRanking[] = competitorKeywordsWithRanking.map(k => ({
+    keyword: k.keyword,
+    position: k.position,
+    searchVolume: k.searchVolume,
+    difficulty: k.difficulty ? parseFloat(k.difficulty.toString()) : null,
+    cpc: k.cpc ? parseFloat(k.cpc.toString()) : null,
+    lastUpdated: k.lastUpdated,
+  }));
+
+  // Calculate overlap using just keyword strings
+  const competitorKeywordStrings = formattedKeywords.map(k => k.keyword);
+  const overlap = calculateOverlap(userKeywordList, competitorKeywordStrings);
 
   logger.info(`Analyzed competitor ${competitorDomain} for project ${projectId}`);
 
   return {
     competitor: competitorDomain,
-    keywords: competitorKeywords,
+    keywords: formattedKeywords,
     overlap,
     lastAnalyzed: competitor.lastAnalyzed,
   };
@@ -252,15 +516,34 @@ export async function findByProject(
 }
 
 /**
- * Get competitor keywords
+ * Get competitor keywords with ranking data
  * @param competitorId - Competitor ID
- * @returns Array of keywords
+ * @returns Array of keywords with ranking information
  */
-export async function getCompetitorKeywords(competitorId: string): Promise<string[]> {
+export async function getCompetitorKeywordsWithRanking(competitorId: string): Promise<CompetitorKeywordWithRanking[]> {
   const keywords = await prisma.competitorKeyword.findMany({
     where: { competitorId },
-    select: { keyword: true },
+    select: {
+      keyword: true,
+      position: true,
+      searchVolume: true,
+      difficulty: true,
+      cpc: true,
+      lastUpdated: true,
+    },
+    orderBy: [
+      { position: 'asc' }, // Ranked keywords first
+      { searchVolume: 'desc' }, // Then by search volume
+    ],
   });
 
-  return keywords.map(k => k.keyword);
+  // Convert Decimal types to numbers
+  return keywords.map(k => ({
+    keyword: k.keyword,
+    position: k.position,
+    searchVolume: k.searchVolume,
+    difficulty: k.difficulty ? parseFloat(k.difficulty.toString()) : null,
+    cpc: k.cpc ? parseFloat(k.cpc.toString()) : null,
+    lastUpdated: k.lastUpdated,
+  }));
 }

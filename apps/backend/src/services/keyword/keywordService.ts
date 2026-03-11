@@ -107,6 +107,15 @@ async function fetchKeywordMetrics(keyword: string): Promise<KeywordData> {
 }
 
 /**
+ * Get keyword metrics (wrapper around fetchKeywordMetrics)
+ * @param keyword - Keyword to get metrics for
+ * @returns Keyword metrics
+ */
+export async function getKeywordMetrics(keyword: string): Promise<KeywordData> {
+  return fetchKeywordMetrics(keyword);
+}
+
+/**
  * Research keywords and store their metrics
  * Implements batch processing and upsert logic
  * @param projectId - Project ID to associate keywords with

@@ -14,7 +14,7 @@
     "db:studio": "npx prisma studio"
   },
   "dependencies": {
-    "@seo-saas/shared-types": "*"
-  },
-  "devDependencies": {}
+    "@seo-saas/shared-types": "*",
+    "axios": "^1.13.6"
+  }
 }

@@ -37,6 +37,7 @@ export default function DashboardLayout({
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
     { name: 'Projects', href: '/dashboard/projects', icon: '📁' },
     { name: 'Rankings', href: '/dashboard/rankings', icon: '📈' },
+    { name: 'Competitors', href: '/dashboard/competitors', icon: '🏆' },
     { name: 'Audit', href: '/dashboard/audit', icon: '🔍' },
     { name: 'Content Optimizer', href: '/dashboard/content', icon: '✍️' },
   ];
