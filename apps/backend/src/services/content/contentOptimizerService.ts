@@ -19,7 +19,7 @@ export interface SERPResult {
 }
 
 /**
- * Fetches top SERP results for a target keyword
+ * Fetches top SERP results for a target keyword using SerpAPI
  * @param keyword - The target keyword to search for
  * @param limit - Number of results to fetch (default: 10)
  * @returns Array of SERP results with extracted content
@@ -37,17 +37,20 @@ export async function fetchSERPResults(
     return cached;
   }
 
-  logger.info(`Fetching SERP results for keyword: ${keyword}`);
+  logger.info(`Fetching real-time SERP results from SerpAPI for keyword: ${keyword}`);
 
-  // In a real implementation, this would use a search API (Google Custom Search, Bing, etc.)
-  // For this implementation, we'll simulate SERP results with mock URLs
-  // In production, you would integrate with a real search API
-  const mockSerpUrls = generateMockSerpUrls(keyword, limit);
+  // Get real SERP URLs from SerpAPI
+  const serpUrls = await fetchRealSerpUrls(keyword, limit);
+
+  if (serpUrls.length === 0) {
+    logger.warn(`No SERP results found for keyword: ${keyword}`);
+    return [];
+  }
 
   // Scrape each SERP result URL to extract content
   const serpResults: SERPResult[] = [];
   
-  for (const url of mockSerpUrls) {
+  for (const url of serpUrls) {
     try {
       const html = await scraperQueue.scrape(url);
       const extracted = extractContentFromHtml(html, url);
@@ -68,24 +71,62 @@ export async function fetchSERPResults(
 }
 
 /**
- * Generates mock SERP URLs for testing
- * In production, this would be replaced with actual search API integration
+ * Fetches real SERP URLs from SerpAPI
  * @param keyword - The search keyword
- * @param limit - Number of URLs to generate
- * @returns Array of mock URLs
+ * @param limit - Number of URLs to fetch
+ * @returns Array of real URLs from Google search results
  */
-function generateMockSerpUrls(keyword: string, limit: number): string[] {
-  // This is a placeholder for actual SERP API integration
-  // In production, you would call Google Custom Search API, Bing API, etc.
-  const urls: string[] = [];
-  const encodedKeyword = encodeURIComponent(keyword);
-  
-  // Generate mock URLs that would represent top-ranking pages
-  for (let i = 1; i <= limit; i++) {
-    urls.push(`https://example.com/${encodedKeyword}/page-${i}`);
+async function fetchRealSerpUrls(keyword: string, limit: number): Promise<string[]> {
+  try {
+    const apiKey = config.SERPAPI_KEY;
+    if (!apiKey) {
+      logger.error('SERPAPI_KEY not configured');
+      throw new Error('SERPAPI_KEY environment variable not set');
+    }
+
+    const axios = (await import('axios')).default;
+    
+    // Build SerpAPI request
+    const searchUrl = 'https://serpapi.com/search.json';
+    const params = {
+      engine: 'google',
+      q: keyword,
+      location: 'United States',
+      google_domain: 'google.com',
+      device: 'desktop',
+      api_key: apiKey,
+      num: Math.min(limit, 100) // SerpAPI supports up to 100 results
+    };
+
+    logger.info(`Calling SerpAPI for keyword: "${keyword}"`);
+
+    const response = await axios.get(searchUrl, { params });
+    
+    if (response.status !== 200) {
+      throw new Error(`SerpAPI returned status ${response.status}`);
+    }
+
+    const data = response.data;
+    
+    if (!data.organic_results || data.organic_results.length === 0) {
+      logger.warn(`No organic results from SerpAPI for keyword: ${keyword}`);
+      return [];
+    }
+
+    // Extract URLs from organic results
+    const urls = data.organic_results
+      .slice(0, limit)
+      .map((result: any) => result.link)
+      .filter((url: string) => url && url.startsWith('http'));
+
+    logger.info(`Fetched ${urls.length} real SERP URLs from SerpAPI for keyword: ${keyword}`);
+    return urls;
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(`Failed to fetch SERP URLs from SerpAPI: ${errorMessage}`);
+    throw new Error(`Failed to fetch real-time SERP data: ${errorMessage}`);
   }
-  
-  return urls;
 }
 
 /**
