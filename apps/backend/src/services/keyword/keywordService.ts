@@ -437,6 +437,7 @@ export async function findByProject(
 
 /**
  * Delete a keyword
+ * Also deletes all associated rankings
  * @param projectId - Project ID
  * @param keyword - Keyword to delete
  */
@@ -444,6 +445,15 @@ export async function deleteKeyword(
   projectId: string,
   keyword: string
 ): Promise<void> {
+  // Delete all rankings for this keyword first
+  await prisma.ranking.deleteMany({
+    where: {
+      projectId,
+      keyword,
+    },
+  });
+
+  // Delete the keyword
   await prisma.keyword.delete({
     where: {
       projectId_keyword: {
@@ -453,5 +463,5 @@ export async function deleteKeyword(
     },
   });
 
-  logger.info(`Deleted keyword "${keyword}" from project ${projectId}`);
+  logger.info(`Deleted keyword "${keyword}" and its rankings from project ${projectId}`);
 }

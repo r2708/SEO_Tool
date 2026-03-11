@@ -121,4 +121,42 @@ router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, n
   }
 });
 
+/**
+ * DELETE /api/keywords/:projectId/:keyword
+ * Delete a keyword from a project
+ * Requires authentication and project ownership
+ * Validates: Requirements 5.1, 5.2
+ */
+router.delete('/:projectId/:keyword', authenticate, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { projectId, keyword } = req.params;
+    const userId = req.user!.id;
+
+    // Validate request params
+    if (!projectId) {
+      throw new ValidationError('projectId is required');
+    }
+
+    if (!keyword) {
+      throw new ValidationError('keyword is required');
+    }
+
+    // Verify project ownership
+    const isOwner = await projectService.verifyOwnership(projectId, userId);
+    if (!isOwner) {
+      throw new AuthorizationError('You do not have permission to access this project');
+    }
+
+    // Delete keyword (also invalidates cache)
+    await keywordService.deleteKeyword(projectId, decodeURIComponent(keyword));
+
+    (res as FormattedResponse).success({ 
+      message: 'Keyword deleted successfully',
+      keyword: decodeURIComponent(keyword)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

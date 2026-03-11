@@ -27,6 +27,7 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(50);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [deletingKeyword, setDeletingKeyword] = useState<string | null>(null);
 
   useEffect(() => {
     loadKeywords();
@@ -159,6 +160,24 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const handleDeleteKeyword = async (keyword: string) => {
+    if (!confirm(`Are you sure you want to delete "${keyword}"?`)) {
+      return;
+    }
+
+    try {
+      setDeletingKeyword(keyword);
+      await apiClient.delete(`/api/keywords/${projectId}/${encodeURIComponent(keyword)}`);
+      
+      // Reload keywords after deletion
+      await loadKeywords();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete keyword');
+    } finally {
+      setDeletingKeyword(null);
     }
   };
 
@@ -342,6 +361,9 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Current Rank
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -383,6 +405,22 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
                       ) : (
                         <span className="text-gray-400 text-xs">Checking...</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        onClick={() => handleDeleteKeyword(keyword.keyword)}
+                        disabled={deletingKeyword === keyword.keyword}
+                        className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete keyword"
+                      >
+                        {deletingKeyword === keyword.keyword ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
                     </td>
                   </tr>
                 ))}
