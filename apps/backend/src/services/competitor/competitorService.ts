@@ -51,6 +51,12 @@ export interface KeywordOverlap {
  * @param domain - Competitor domain to analyze
  * @returns Array of extracted keywords
  */
+/**
+ * Extract keywords from a competitor's website
+ * Returns top 10 most relevant keywords based on frequency and position
+ * @param domain - Competitor domain to analyze
+ * @returns Array of top 10 keywords
+ */
 export async function extractKeywords(domain: string): Promise<string[]> {
   // Ensure domain has protocol
   const url = domain.startsWith('http') ? domain : `https://${domain}`;
@@ -61,54 +67,74 @@ export async function extractKeywords(domain: string): Promise<string[]> {
   // Parse HTML with cheerio
   const $ = cheerio.load(html);
   
-  const keywords = new Set<string>();
+  // Track keywords with weights (higher weight = more important)
+  const keywordWeights = new Map<string, number>();
   
-  // Extract from meta keywords tag
+  // Helper function to add keywords with weight
+  const addKeywords = (text: string, weight: number) => {
+    const words = text.toLowerCase().match(/\b\w{3,}\b/g) || [];
+    words.forEach(word => {
+      const current = keywordWeights.get(word) || 0;
+      keywordWeights.set(word, current + weight);
+    });
+  };
+  
+  // Extract from meta keywords tag (highest priority)
   const metaKeywords = $('meta[name="keywords"]').attr('content');
   if (metaKeywords) {
     metaKeywords.split(',').forEach(kw => {
       const trimmed = kw.trim().toLowerCase();
-      if (trimmed) keywords.add(trimmed);
+      if (trimmed) {
+        keywordWeights.set(trimmed, (keywordWeights.get(trimmed) || 0) + 10);
+      }
     });
   }
   
-  // Extract from meta description
-  const metaDescription = $('meta[name="description"]').attr('content');
-  if (metaDescription) {
-    // Extract significant words (3+ characters)
-    const words = metaDescription.toLowerCase().match(/\b\w{3,}\b/g) || [];
-    words.forEach(word => keywords.add(word));
-  }
-  
-  // Extract from title
+  // Extract from title (very high priority)
   const title = $('title').text();
   if (title) {
-    const words = title.toLowerCase().match(/\b\w{3,}\b/g) || [];
-    words.forEach(word => keywords.add(word));
+    addKeywords(title, 8);
   }
   
-  // Extract from headings (h1, h2, h3)
-  $('h1, h2, h3').each((_, element) => {
-    const text = $(element).text();
-    const words = text.toLowerCase().match(/\b\w{3,}\b/g) || [];
-    words.forEach(word => keywords.add(word));
+  // Extract from meta description (high priority)
+  const metaDescription = $('meta[name="description"]').attr('content');
+  if (metaDescription) {
+    addKeywords(metaDescription, 6);
+  }
+  
+  // Extract from h1 (high priority)
+  $('h1').each((_, element) => {
+    addKeywords($(element).text(), 7);
   });
   
-  // Extract from first paragraph of content
+  // Extract from h2 (medium-high priority)
+  $('h2').each((_, element) => {
+    addKeywords($(element).text(), 5);
+  });
+  
+  // Extract from h3 (medium priority)
+  $('h3').each((_, element) => {
+    addKeywords($(element).text(), 3);
+  });
+  
+  // Extract from first paragraph (medium priority)
   const firstParagraph = $('p').first().text();
   if (firstParagraph) {
-    const words = firstParagraph.toLowerCase().match(/\b\w{3,}\b/g) || [];
-    // Take first 20 words to avoid too many generic terms
-    words.slice(0, 20).forEach(word => keywords.add(word));
+    addKeywords(firstParagraph, 2);
   }
   
   // Filter out common stop words
-  const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use']);
+  const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use', 'with', 'from', 'have', 'this', 'that', 'will', 'your', 'what', 'been', 'more', 'when', 'there', 'their', 'which', 'about', 'into', 'than', 'them', 'these', 'only', 'other', 'such', 'some', 'time', 'very', 'would', 'make', 'like', 'just', 'know', 'take', 'people', 'year', 'good', 'work', 'first', 'well', 'even', 'want', 'because', 'any', 'give', 'most', 'also']);
   
-  const filteredKeywords = Array.from(keywords).filter(kw => !stopWords.has(kw));
+  // Sort by weight and get top 10
+  const sortedKeywords = Array.from(keywordWeights.entries())
+    .filter(([keyword]) => !stopWords.has(keyword) && keyword.length >= 3)
+    .sort((a, b) => b[1] - a[1]) // Sort by weight descending
+    .slice(0, 10) // Take top 10
+    .map(([keyword]) => keyword);
   
-  logger.info(`Extracted ${filteredKeywords.length} keywords from ${domain}`);
-  return filteredKeywords;
+  logger.info(`Extracted top ${sortedKeywords.length} keywords from ${domain} (from ${keywordWeights.size} total)`);
+  return sortedKeywords;
 }
 
 /**
@@ -177,6 +203,9 @@ export async function analyzeBackground(
   }
 
   // Start background ranking analysis (don't await)
+  // Keywords are already limited to top 10 from extraction
+  logger.info(`Starting background analysis for ${competitorKeywords.length} keywords`);
+  
   processRankingDataInBackground(competitor.id, competitorKeywords, competitorDomain)
     .catch(error => {
       logger.error(`Background ranking analysis failed for competitor ${competitorDomain}:`, error);
@@ -221,10 +250,10 @@ async function processRankingDataInBackground(
   keywords: string[],
   competitorDomain: string
 ): Promise<void> {
-  logger.info(`Starting background ranking analysis for ${keywords.length} keywords`);
+  logger.info(`Starting background ranking analysis for ${keywords.length} keywords (API-optimized)`);
 
-  // Limit to top 15 keywords for performance
-  const limitedKeywords = keywords.slice(0, 15);
+  // Keywords are already limited to top 10 from extraction
+  const limitedKeywords = keywords;
   
   // Import services
   const { getSerpApiRank } = await import('../rank/serpApiRankTracker');
@@ -262,9 +291,9 @@ async function processRankingDataInBackground(
       logger.warn(`✗ Background failed for "${keyword}":`, { error: error instanceof Error ? error.message : String(error) });
     }
     
-    // Delay between requests
+    // Delay between requests (increased to 3 seconds to be more conservative)
     if (i < limitedKeywords.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
   
@@ -323,9 +352,9 @@ export async function analyze(
 
   // Store competitor keywords with ranking data
   if (competitorKeywords.length > 0) {
-    // Limit keywords to avoid timeout - take top 20 most relevant keywords
-    const limitedKeywords = competitorKeywords.slice(0, 20);
-    logger.info(`Processing ${limitedKeywords.length} keywords (limited from ${competitorKeywords.length} for performance)`);
+    // Keywords are already limited to top 10 from extraction
+    const limitedKeywords = competitorKeywords;
+    logger.info(`Processing ${limitedKeywords.length} keywords`);
 
     // Import ranking services
     const { getSerpApiRank } = await import('../rank/serpApiRankTracker');
@@ -371,14 +400,15 @@ export async function analyze(
         });
       }
       
-      // Add delay between each keyword to respect API limits
+      // Add delay between each keyword to respect API limits (increased to 3 seconds)
       if (i < limitedKeywords.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
       }
     }
 
     // Store remaining keywords without ranking data (for overlap calculation)
-    const remainingKeywords = competitorKeywords.slice(20);
+    // Since we only extract top 10, there are no remaining keywords
+    const remainingKeywords: string[] = [];
     for (const keyword of remainingKeywords) {
       keywordData.push({
         competitorId: competitor.id,

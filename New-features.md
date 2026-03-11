@@ -1,0 +1,1 @@
+Database Cache will be for 30 days, after 30 days from the search of competitors keywords all those competitors keywords will be deleted.automatically.
