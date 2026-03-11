@@ -39,7 +39,7 @@ export interface RankHistory {
  * Implements upsert logic for same keyword + date
  * @param projectId - Project ID
  * @param keyword - Keyword being tracked
- * @param position - Position in search results (1-100)
+ * @param position - Position in search results (0 = not ranked, 1-100 = actual position)
  * @param date - Optional date (defaults to today in YYYY-MM-DD format)
  * @returns Stored ranking record
  * @throws NotFoundError if project doesn't exist
@@ -179,7 +179,7 @@ export async function getHistory(
 /**
  * Validate ranking data constraints
  * @param keyword - Keyword to validate
- * @param position - Position to validate
+ * @param position - Position to validate (0 means not ranked, 1-100 for actual positions)
  * @throws ValidationError if constraints are violated
  */
 function validateRankingData(keyword: string, position: number): void {
@@ -197,8 +197,9 @@ function validateRankingData(keyword: string, position: number): void {
     throw new ValidationError('Position must be an integer');
   }
 
-  if (position < 1 || position > 100) {
-    throw new ValidationError('Position must be between 1 and 100');
+  // Allow 0 for "not ranked in top 100", or 1-100 for actual positions
+  if (position < 0 || position > 100) {
+    throw new ValidationError('Position must be between 0 and 100 (0 = not ranked)');
   }
 }
 

@@ -22,15 +22,21 @@ export class CachedKeywordService {
   /**
    * Research keywords with cache invalidation
    * After storing new keyword data, invalidates the cache
+   * Also passes cache invalidation callback to background ranking checks
    * @param projectId - Project ID
    * @param keywords - Array of keywords to research
    * @returns Array of stored keyword data
    */
   async research(projectId: string, keywords: string[]): Promise<Keyword[]> {
     // Perform research (writes to database)
-    const results = await keywordService.research(projectId, keywords);
+    // Pass cache invalidation callback for background ranking updates
+    const results = await keywordService.research(
+      projectId, 
+      keywords,
+      () => this.invalidateCache(projectId)
+    );
 
-    // Invalidate cache after update
+    // Invalidate cache after initial research completes
     await this.invalidateCache(projectId);
 
     return results;
@@ -63,6 +69,9 @@ export class CachedKeywordService {
    * 3. Store in cache for future requests
    * 4. Return data
    * 
+   * Caches both paginated and non-paginated requests with composite keys
+   * to avoid unnecessary database queries during auto-refresh.
+   * 
    * @param projectId - Project ID
    * @param skip - Number of records to skip (for pagination)
    * @param take - Number of records to take (for pagination)
@@ -73,39 +82,38 @@ export class CachedKeywordService {
     skip?: number,
     take?: number
   ): Promise<{ keywords: KeywordWithRank[]; total: number }> {
-    const cacheKey = CacheKeys.keywords(projectId);
+    // Create cache key with pagination parameters for composite caching
+    const cacheKey = skip !== undefined && take !== undefined
+      ? `${CacheKeys.keywords(projectId)}:page:${skip}:${take}`
+      : CacheKeys.keywords(projectId);
 
-    // Try cache first (only for non-paginated requests)
-    if (skip === undefined && take === undefined) {
-      try {
-        const cached = await this.cache.get<{ keywords: KeywordWithRank[]; total: number }>(cacheKey);
-        if (cached) {
-          logger.debug(`Cache hit for keywords: ${projectId}`);
-          return cached;
-        }
-      } catch (error) {
-        logger.warn(`Cache retrieval failed for key ${cacheKey}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Continue to database fallback
+    // Try cache first
+    try {
+      const cached = await this.cache.get<{ keywords: KeywordWithRank[]; total: number }>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for keywords: ${projectId} (skip: ${skip}, take: ${take})`);
+        return cached;
       }
+    } catch (error) {
+      logger.warn(`Cache retrieval failed for key ${cacheKey}`, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Continue to database fallback
     }
 
-    // Cache miss or paginated request - fetch from database
-    logger.debug(`Cache miss for keywords: ${projectId}`);
+    // Cache miss - fetch from database
+    logger.debug(`Cache miss for keywords: ${projectId} (skip: ${skip}, take: ${take})`);
     const result = await keywordService.findByProject(projectId, skip, take);
 
-    // Try to cache the result (only for non-paginated requests)
-    if (skip === undefined && take === undefined) {
-      try {
-        await this.cache.set(cacheKey, result, CacheTTL.KEYWORDS);
-        logger.debug(`Cached keywords for project: ${projectId}`);
-      } catch (error) {
-        logger.warn(`Cache storage failed for key ${cacheKey}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Continue - data is still returned from database
-      }
+    // Try to cache the result
+    try {
+      await this.cache.set(cacheKey, result, CacheTTL.KEYWORDS);
+      logger.debug(`Cached keywords for project: ${projectId} (skip: ${skip}, take: ${take})`);
+    } catch (error) {
+      logger.warn(`Cache storage failed for key ${cacheKey}`, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Continue - data is still returned from database
     }
 
     return result;
@@ -127,16 +135,24 @@ export class CachedKeywordService {
   /**
    * Invalidate cache for a project's keywords
    * Called after any update operation
+   * Clears both base cache and all paginated cache entries using pattern matching
    * @param projectId - Project ID
    */
   async invalidateCache(projectId: string): Promise<void> {
-    const cacheKey = CacheKeys.keywords(projectId);
+    const baseKey = CacheKeys.keywords(projectId);
     
     try {
-      await this.cache.del(cacheKey);
-      logger.debug(`Invalidated cache for keywords: ${projectId}`);
+      // Delete base cache key
+      await this.cache.del(baseKey);
+      
+      // Delete all paginated cache keys using pattern matching
+      // Pattern: keywords:projectId:page:*
+      const pattern = `${baseKey}:page:*`;
+      await this.cache.delPattern(pattern);
+      
+      logger.debug(`Invalidated cache for keywords: ${projectId} (including paginated entries)`);
     } catch (error) {
-      logger.warn(`Cache invalidation failed for key ${cacheKey}`, {
+      logger.warn(`Cache invalidation failed for project ${projectId}`, {
         error: error instanceof Error ? error.message : String(error),
       });
       // Don't throw - cache invalidation failure shouldn't break the operation

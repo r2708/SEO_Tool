@@ -5,9 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import type { ProjectWithStats } from '@seo-saas/shared-types';
 import KeywordManagement from '@/components/projects/KeywordManagement';
-import RankingHistory from '@/components/projects/RankingHistory';
 
-type TabType = 'keywords' | 'rankings' | 'competitors';
+type TabType = 'keywords' | 'competitors';
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -150,17 +149,7 @@ export default function ProjectDetailPage() {
                   : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
               }`}
             >
-              Keywords
-            </button>
-            <button
-              onClick={() => setActiveTab('rankings')}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'rankings'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-              }`}
-            >
-              Rankings
+              Keywords & Rankings
             </button>
             <button
               onClick={() => setActiveTab('competitors')}
@@ -178,9 +167,6 @@ export default function ProjectDetailPage() {
         <div className="p-6">
           {activeTab === 'keywords' && (
             <KeywordManagement projectId={projectId} />
-          )}
-          {activeTab === 'rankings' && (
-            <RankingHistory projectId={projectId} />
           )}
           {activeTab === 'competitors' && (
             <div className="text-center py-12 text-gray-600">

@@ -197,7 +197,8 @@ export async function getKeywordMetrics(keyword: string): Promise<KeywordData> {
  */
 export async function research(
   projectId: string,
-  keywords: string[]
+  keywords: string[],
+  onRankingUpdated?: () => Promise<void>
 ): Promise<Keyword[]> {
   // Verify project exists
   const project = await prisma.project.findUnique({
@@ -268,7 +269,7 @@ export async function research(
     // This prevents double API calls - we do both metrics and ranking together
     if (project.domain) {
       logger.info(`Checking rankings for ${batch.length} keywords in background...`);
-      checkRankingsInBackground(projectId, batch, project.domain).catch(error => {
+      checkRankingsInBackground(projectId, batch, project.domain, onRankingUpdated).catch(error => {
         logger.warn(`Background ranking check failed:`, error);
       });
     }
@@ -283,11 +284,13 @@ export async function research(
  * @param projectId - Project ID
  * @param keywords - Keywords to check
  * @param domain - Project domain
+ * @param onRankingUpdated - Optional callback to invalidate cache after each ranking update
  */
 async function checkRankingsInBackground(
   projectId: string,
   keywords: string[],
-  domain: string
+  domain: string,
+  onRankingUpdated?: () => Promise<void>
 ): Promise<void> {
   const { getSerpApiRank } = await import('../rank/serpApiRankTracker');
   const { track } = await import('../rank/rankTrackerService');
@@ -299,8 +302,15 @@ async function checkRankingsInBackground(
       
       const position = await getSerpApiRank(keyword, domain);
       
+      // Always track the result, even if not ranked (position = null means checked but not found)
+      await track(projectId, keyword, position || 0); // 0 means "not ranked in top 100"
+      
+      // Invalidate cache after updating ranking so auto-refresh sees new data
+      if (onRankingUpdated) {
+        await onRankingUpdated();
+      }
+      
       if (position !== null) {
-        await track(projectId, keyword, position);
         logger.info(`✓ Tracked ranking for "${keyword}": #${position}`);
       } else {
         logger.info(`✓ Checked "${keyword}": Not ranked in top 100`);

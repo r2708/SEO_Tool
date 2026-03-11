@@ -26,12 +26,30 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(50);
-  const [checkingKeyword, setCheckingKeyword] = useState<string | null>(null);
-  const [keywordResults, setKeywordResults] = useState<Record<string, { position: number | null; found: boolean; error?: string }>>({});
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
     loadKeywords();
   }, [projectId, currentPage]);
+
+  // Auto-refresh when rankings are being checked
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      loadKeywords();
+    }, 3000); // Refresh every 3 seconds
+
+    // Stop after 30 seconds
+    const timeout = setTimeout(() => {
+      setAutoRefresh(false);
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [autoRefresh, projectId, currentPage]);
 
   const loadKeywords = async () => {
     try {
@@ -64,6 +82,23 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
         // Fallback if backend doesn't return pagination metadata yet
         setTotalPages(1);
         setTotalCount(response.keywords.length);
+      }
+      
+      // Check if any keywords are missing rankings (recently added)
+      // currentRank === undefined or null means not checked yet
+      // currentRank === 0 means checked but not ranked (which is a valid result)
+      const hasUnrankedKeywords = response.keywords.some(
+        k => k.currentRank === undefined || k.currentRank === null
+      );
+      
+      // If there are unranked keywords and auto-refresh is not already active, start it
+      if (hasUnrankedKeywords && !autoRefresh) {
+        setAutoRefresh(true);
+      }
+      
+      // If all keywords have rankings (including 0 for "not ranked"), stop auto-refresh
+      if (!hasUnrankedKeywords && autoRefresh) {
+        setAutoRefresh(false);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load keywords');
@@ -108,43 +143,13 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
       setKeywordInput('');
       setCurrentPage(1); // Reset to first page
       await loadKeywords();
+      
+      // Start auto-refresh to show rankings as they come in
+      setAutoRefresh(true);
     } catch (err: any) {
       setResearchError(err.message || 'Failed to research keywords');
     } finally {
       setResearching(false);
-    }
-  };
-
-  const handleCheckKeywordRanking = async (keyword: string) => {
-    try {
-      setCheckingKeyword(keyword);
-      
-      const response = await apiClient.post('/api/rank/check-keyword', {
-        projectId,
-        keyword
-      }) as { position: number | null; found: boolean; domain: string };
-      
-      setKeywordResults(prev => ({
-        ...prev,
-        [keyword]: {
-          position: response.position,
-          found: response.found
-        }
-      }));
-      
-      // Refresh rankings data
-      setTimeout(() => loadKeywords(), 1000);
-    } catch (err: any) {
-      setKeywordResults(prev => ({
-        ...prev,
-        [keyword]: {
-          position: null,
-          found: false,
-          error: err.message || 'Failed to check ranking'
-        }
-      }));
-    } finally {
-      setCheckingKeyword(null);
     }
   };
 
@@ -248,6 +253,15 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
           </div>
         )}
 
+        {autoRefresh && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+            <p className="text-sm text-blue-800">
+              Rankings are being checked... Refreshing display automatically.
+            </p>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={researching}
@@ -325,17 +339,8 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
                       <SortIcon field="cpc" />
                     </div>
                   </th>
-                  <th
-                    onClick={() => handleSort('currentRank')}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>Current Rank</span>
-                      <SortIcon field="currentRank" />
-                    </div>
-                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Actions
+                    Current Rank
                   </th>
                 </tr>
               </thead>
@@ -364,46 +369,20 @@ export default function KeywordManagement({ projectId }: KeywordManagementProps)
                     <td className="px-4 py-3 text-sm text-gray-900">
                       ${keyword.cpc.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {keyword.currentRank !== undefined ? keyword.currentRank : '—'}
-                    </td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleCheckKeywordRanking(keyword.keyword)}
-                          disabled={checkingKeyword === keyword.keyword}
-                          className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50 flex items-center"
-                        >
-                          {checkingKeyword === keyword.keyword ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                              Checking...
-                            </>
-                          ) : (
-                            'Check SERP'
-                          )}
-                        </button>
-                        
-                        {keywordResults[keyword.keyword] && (
-                          <div className="flex items-center space-x-1">
-                            {keywordResults[keyword.keyword].found ? (
-                              <span className="text-green-600 text-xs font-medium">
-                                #{keywordResults[keyword.keyword].position}
-                              </span>
-                            ) : (
-                              <span className="text-red-600 text-xs">
-                                Not found
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {keywordResults[keyword.keyword]?.error && (
-                          <span className="text-red-600 text-xs" title={keywordResults[keyword.keyword].error}>
-                            Error
+                      {keyword.currentRank !== undefined && keyword.currentRank !== null ? (
+                        keyword.currentRank > 0 ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            #{keyword.currentRank}
                           </span>
-                        )}
-                      </div>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            Not ranked
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-gray-400 text-xs">Checking...</span>
+                      )}
                     </td>
                   </tr>
                 ))}

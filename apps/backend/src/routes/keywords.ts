@@ -99,7 +99,9 @@ router.get('/:projectId', authenticate, async (req: AuthenticatedRequest, res, n
       difficulty: parseFloat(keyword.difficulty.toString()),
       cpc: parseFloat(keyword.cpc.toString()),
       currentRank: keyword.currentRank,
-      lastUpdated: keyword.lastUpdated.toISOString(),
+      lastUpdated: keyword.lastUpdated instanceof Date 
+        ? keyword.lastUpdated.toISOString() 
+        : keyword.lastUpdated, // Already a string from cache
     }));
 
     // Calculate total pages
